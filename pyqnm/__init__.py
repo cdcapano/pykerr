@@ -1,5 +1,6 @@
 import os
 import pkg_resources
+import numpy
 import h5py
 from scipy.interpolate import CubicSpline
 
@@ -15,12 +16,13 @@ _imomega_splines = {}
 
 def _create_spline(name, l, m, n):
     """Creates a cubic spline for the specified mode data."""
-    # load the appropriate hdf file
-    #if not os.path.exists('data/l{}.hdf'):
-    #    raise ValueError("no data for the requested l")
     # load the data
     lmn = '{}{}{}'.format(l, abs(m), n)
-    dfile = pkg_resources.resource_stream(__name__, 'data/l{}.hdf'.format(l))
+    try:
+        dfile = pkg_resources.resource_stream(__name__,
+                                              'data/l{}.hdf'.format(l))
+    except OSError:
+        raise ValueError("unsupported lmn {}{}{}".format(l, m, n))
     with h5py.File(dfile, 'r') as fp:
         x = fp[lmn]['spin'][()]
         y = fp[lmn][name][()]
@@ -54,8 +56,13 @@ def kerr_freq(mass, spin, l, m, n):
         spline = _reomega_splines[l, abs(m), n]
     except KeyError:
         spline = _create_spline('omegaR', l, m, n)
-        _reomega_splines[l, abs(m), n]
-    return spline(spin) / (2*numpy.pi*mass*MTSUN)
+        _reomega_splines[l, abs(m), n] = spline
+    # if m is 0, use the absolute value of the spin
+    if m == 0:
+        spin = abs(spin)
+    # negate the frequency if m < 0
+    sign = (-1)**int(m < 0)
+    return sign * spline(spin) / (2*numpy.pi*mass*MTSUN)
 
 
 def kerr_tau(mass, spin, l, m, n):
@@ -85,5 +92,8 @@ def kerr_tau(mass, spin, l, m, n):
         spline = _imomega_splines[l, abs(m), n]
     except KeyError:
         spline = _create_spline('omegaI', l, m, n)
-        _imomega_splines[l, abs(m), n]
-    return mass*MTSUN / spline(spin)
+        _imomega_splines[l, abs(m), n] = spline
+    # if m is 0, use the absolute value of the spin
+    if m == 0:
+        spin = abs(spin)
+    return -mass*MTSUN / spline(spin)
