@@ -10,9 +10,13 @@ setuptools.setup(
     #long_description=open('DESCRIPTION.rst').read(),
     packages=setuptools.find_packages(),
     install_requires=['numpy', 'scipy', 'h5py'],
-    classifiers=[
-        'Programming Language :: Python :: 3',
-    ],
     include_package_data=True,
     package_data={'': ['data/*.hdf']},
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Operating System :: OS Independent",
+        'Intended Audience :: Science/Research',
+        'Natural Language :: English',
+    ],
 )
