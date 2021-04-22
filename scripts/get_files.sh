@@ -1,5 +1,6 @@
 #! /usr/bin/env bash
 set -e
+mkdir -p ../pykerr/data
 for ll in 2 3 4 5 6 7; do
     mode=l${ll}
     mkdir -p ${mode}

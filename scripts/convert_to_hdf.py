@@ -25,8 +25,9 @@ regex = re.compile(r'n([1-9])l([2-9])m(m*[0-9])')
 # according to https://centra.tecnico.ulisboa.pt/network/grit/files/ringdown/,
 # the file format for the Kerr QNM are:
 # a/M, Re[M omega}, Im[M omega], Re[Alm], Im[Alm] 
-dtype = [('spin', float), ('omegaR', float), ('omegaI', float),
-         ('ReAlm', float), ('ImAlm', float)]
+dtype = [('spin', numpy.float32),
+         ('omegaR', numpy.float32), ('omegaI', numpy.float32),
+         ('ReAlm', numpy.float32), ('ImAlm', numpy.float32)]
 
 qnm = {}
 for datfn in datfiles:
@@ -60,9 +61,20 @@ for datfn in datfiles:
 out = h5py.File(opts.output_file, 'w')
 group = '{}/{}'
 for lmn, data in qnm.items():
+    # spin
     tmplt = lmn + '/{}'
-    for (name, _) in dtype:
-        group = tmplt.format(name)
-        out.create_dataset(group, data.shape, compression="gzip")
-        out[group][:] = qnm[lmn][name]
+    group = tmplt.format('spin')
+    out.create_dataset(group, data.shape, dtype=numpy.float32,
+                       compression="gzip")
+    out[group][:] = qnm[lmn]['spin']
+    # omega
+    group = tmplt.format('omega')
+    out.create_dataset(group, data.shape, dtype=numpy.complex64,
+                       compression="gzip")
+    out[group][:] = qnm[lmn]['omegaR'] + 1j*qnm[lmn]['omegaI']
+    # angular separtion constant
+    group = tmplt.format('alm')
+    out.create_dataset(group, data.shape, dtype=numpy.complex64,
+                       compression='gzip')
+    out[group][:] = qnm[lmn]['ReAlm'] + 1j*qnm[lmn]['ImAlm']
 out.close()

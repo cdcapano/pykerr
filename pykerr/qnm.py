@@ -14,7 +14,7 @@ _reomega_splines = {}
 _imomega_splines = {}
 
 
-def _create_spline(name, l, m, n):
+def _create_spline(name, reim, l, m, n):
     """Creates a cubic spline for the specified mode data."""
     # load the data
     lmn = '{}{}{}'.format(l, abs(m), n)
@@ -24,8 +24,14 @@ def _create_spline(name, l, m, n):
     except OSError:
         raise ValueError("unsupported lmn {}{}{}".format(l, m, n))
     with h5py.File(dfile, 'r') as fp:
-        x = fp[lmn]['spin'][()]
+        x = fp[lmn]['spin'][()].astype(float)
         y = fp[lmn][name][()]
+        if reim == 're':
+            y = y.real.astype(float)
+        elif reim == 'im':
+            y = y.imag.astype(float)
+        else:
+            raise ValueError("reim must be eiter 're' or 'im'")
     return CubicSpline(x, y, axis=0, bc_type='natural', extrapolate=False)
 
 
@@ -55,7 +61,7 @@ def kerr_freq(mass, spin, l, m, n):
     try:
         spline = _reomega_splines[l, abs(m), n]
     except KeyError:
-        spline = _create_spline('omegaR', l, m, n)
+        spline = _create_spline('omega', 're', l, m, n)
         _reomega_splines[l, abs(m), n] = spline
     # if m is 0, use the absolute value of the spin
     if m == 0:
@@ -91,7 +97,7 @@ def kerr_tau(mass, spin, l, m, n):
     try:
         spline = _imomega_splines[l, abs(m), n]
     except KeyError:
-        spline = _create_spline('omegaI', l, m, n)
+        spline = _create_spline('omega', 'im', l, m, n)
         _imomega_splines[l, abs(m), n] = spline
     # if m is 0, use the absolute value of the spin
     if m == 0:
