@@ -1,4 +1,4 @@
-# pyqnm
+# pykerr
 Utilities for quasi normal modes of Kerr black holes.
 
 ## Installation
@@ -26,10 +26,10 @@ python setup.py install
 ## Example
 
 ```
->>> import pyqnm
->> pyqnm.kerr_freq(200., 0.7, 2, 2, 0)
+>>> import pykerr
+>> pykerr.kerr_freq(200., 0.7, 2, 2, 0)
 86.04823229677822
->>> pyqnm.kerr_tau(200., 0.7, 2, 2, 0)
+>>> pykerr.kerr_tau(200., 0.7, 2, 2, 0)
 0.012192884850631896
 ```
 

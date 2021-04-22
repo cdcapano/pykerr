@@ -1,7 +1,7 @@
 import setuptools
 
 setuptools.setup(
-    name="pyqnm",
+    name="pykerr",
     version="0.1.0",
     url="",
     author="Collin Capano",
