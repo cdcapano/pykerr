@@ -1,12 +1,9 @@
 import numpy
-from lalsimulation import SimBlackHoleRingdownSpheroidalWaveFunction \
-    as _spheroidal
-from lal import SpinWeightedSphericalHarmonic as _spherical
 
 """Functions to calculate spheroidal and spherical harmonics.
 """
 
-def slm(inclination, spin, l, m, n=0, s=-2, azimuthal=0.):
+def spheroidal(inclination, spin, l, m, n=0, s=-2, azimuthal=0.):
     """Calculate the spin-weighted spheroidal harmonic.
 
     Uses functions from lalsimulation. Currently, only the fundamental
@@ -35,6 +32,12 @@ def slm(inclination, spin, l, m, n=0, s=-2, azimuthal=0.):
     complex :
         The value of the spheroidal harmonic.
     """
+    try:
+        from lalsimulation import SimBlackHoleRingdownSpheroidalWaveFunction \
+            as _spheroidal
+    except ImportError:
+        raise ImportError("lalsuite must be installed for spheroidal "
+                          "harmonics")
     # for some reason, the spheriodal functions in lalsimulation are off
     # by the following factor, which is obtained by comparing the spherioidal
     # harmonic at zero spin to the spherical harmonic
@@ -62,7 +65,7 @@ def slm(inclination, spin, l, m, n=0, s=-2, azimuthal=0.):
             for inc in inclination.ravel()]).reshape(inclination.shape)
 
 
-def ylm(inclination, l, m, s=-2, azimuthal=0.):
+def spherical(inclination, l, m, s=-2, azimuthal=0.):
     """Calculate the spin-weighted spherical harmonic.
 
     Uses functions from lal.
@@ -85,6 +88,11 @@ def ylm(inclination, l, m, s=-2, azimuthal=0.):
     complex :
         The value of the spherical harmonic.
     """
+    try:
+        from lal import SpinWeightedSphericalHarmonic as _spherical
+    except ImportError:
+        raise ImportError("lalsuite must be installed to generate the "
+                          "spherical harmonics")
     try:
         return _spherical(inclination, azimuthal, s, l, m)
     except TypeError:
