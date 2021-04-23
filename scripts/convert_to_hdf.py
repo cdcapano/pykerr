@@ -42,6 +42,11 @@ for datfn in datfiles:
     ll = int(match.group(2))
     mm = int(match.group(3).replace('m', '-'))
     data = numpy.loadtxt(datfn, dtype=dtype)
+    # some values that should be 0 are set to a tiny amount; correct them
+    # to be zero
+    for name, _ in dtype:
+        mask = abs(data[name]) < 1e-12
+        data[name][mask] = 0.
     # we'll use the convention that the -m modes correspond to negative spin
     if mm < 0:
         data['spin'] *= -1
