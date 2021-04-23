@@ -1,3 +1,4 @@
+import logging
 import numpy
 
 from .qnm import (_getspline, kerr_omega, _checkspin)
@@ -112,8 +113,8 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, max_recursion=1000):
                                    dx=thetas[1]))**(-0.5)
 
 
-def _spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
-                max_recursion=1000, normalize=True):
+def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-5,
+           max_recursion=1000, normalize=True):
     r"""Calculate the spin-weighted spheroidal harmonic.
 
     See Eq. 18 of E. W. Leaver (1985)
@@ -141,11 +142,17 @@ def _spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
     tol : float, optional
         Tolerance used for determining when to stop the sum over coefficients
         (see Eq. 18 of Leaver). Default is 1e-8.
+    maxtol : float, optional
+        Maximum allowed error in the sum over coefficients. If the maximum
+        recursion is hit and the difference between consecutuive terms still
+        exceeds this value, a ``ValueError`` will be raised.
     max_recursion : int, optional
         Maximum number of terms that will be used in the sum over coefficients
         (see Eq. 18 of Leaver). If the number of terms exceeds this (meaning
         that the magnitude of each term is larger than ``tol``), a ValueError
-        will be raised. Default is 1000.
+        will be raised if the remaining tolerance is greater than maxtol. 
+        If the remaining tolerance is less than maxtol (but greater than tol),
+        a warning message will be printed. Default is 1000.
     normalize : bool, optional
         Normalize the harmonic before returning. The normalization is such
         that the harmonic integrates to 1 over the unit sphere.
@@ -197,9 +204,17 @@ def _spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
         a_nm1 = a_n
         a_n = a_np1
         jj += 1
-    if jj == max_recursion and delta > tol:
+    if jj == max_recursion and abs(delta) > maxtol:
         raise ValueError("maximum recursion exceeded; current delta is "
-                         "{}".format(delta))
+                         "{}. Parameters are: theta={}, spin={}, l={}, m={}, "
+                         "n={}, s={}, phi={}"
+                         .format(delta, theta, spin, l, m, n, s, phi))
+    elif jj == max_recursion:
+        logging.warning("Did not get to target tolerance of {} for Slm. "
+                        "Actual tolerance is {}. Parameters are: theta={}, "
+                        "spin={}, l={}, m={}, n={}, s={}, phi={}"
+                         .format(tol, abs(delta), theta, spin, l, m, n, s,
+                                 phi))
     # norm (Eq. 18 of Leaver)
     norm = numpy.exp(aw*u + 1j*m*phi) * (1 + u)**k1 *  (1 - u)**k2
     if normalize:
@@ -210,8 +225,20 @@ def _spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
 
 
 # vectorize
-spheroidal = numpy.vectorize(_spheroidal)
-spheroidal.__doc__ = _spheroidal.__doc__
+_npslm = numpy.frompyfunc(_pyslm, 11, 1)
+
+
+def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-5,
+               max_recursion=1000, normalize=True):
+    # done this way to vectorize the function
+    out = _npslm(theta, spin, l, m, n, s, phi, tol, maxtol, max_recursion,
+                 normalize)
+    if isinstance(out, numpy.ndarray):
+        out = out.astype(numpy.complex)
+    return out
+
+
+spheroidal.__doc__ = _pyslm.__doc__
 
 
 def lalspheroidal(inclination, spin, l, m, n=0, s=-2, azimuthal=0.):
