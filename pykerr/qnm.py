@@ -3,7 +3,6 @@ import pkg_resources
 import numpy
 import h5py
 from scipy.interpolate import CubicSpline
-from scipy.interpolate import InterpolatedUnivariateSpline
 
 # the maximum spin we'll allow; this is based on what is in the data files
 MAX_SPIN = 0.9997
@@ -35,8 +34,7 @@ def _create_spline(name, reim, l, m, n):
             y = y.imag.astype(float)
         else:
             raise ValueError("reim must be eiter 're' or 'im'")
-    #return CubicSpline(x, y, axis=0, bc_type='natural', extrapolate=False)
-    return InterpolatedUnivariateSpline(x, y)
+    return CubicSpline(x, y, axis=0, bc_type='natural', extrapolate=False)
 
 
 def _getspline(name, reim, l, m, n, cache):
