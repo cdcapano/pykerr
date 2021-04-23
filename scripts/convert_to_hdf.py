@@ -73,16 +73,22 @@ for datfn in datfiles:
 out = h5py.File(opts.output_file, 'w')
 group = '{}/{}'
 for lmn, data in qnm.items():
+    print(lmn)
     if opts.thin is not None:
-        # make sure to preserve last 3 values close to the boundaries, so
-        # that the cubic spline does the right thing, then every 2 values
-        # for the next six, until using the full thin
-        keep1 = data[:3]
-        keep2 = data[3:9:2]
-        keepn1 = data[-3:]
-        keepn2 = data[-9:-3:2]
-        data = numpy.concatenate((keep1, keep2, data[9:-9:opts.thin],
-                                  keepn2, keepn1))
+        # perserve the last 9 values close to the boundaries, then increase
+        # the thinning to the desired amount
+        dk = 9
+        keep = []
+        ti = 0
+        while ti < opts.thin:
+            keep.append(data[ti*dk:(ti+1)*dk:ti+1])
+            ti += 1
+        keep.append(data[ti*dk:-ti*dk:opts.thin])
+        while ti > 1:
+            keep.append(data[-ti*dk:-(ti-1)*dk:ti])
+            ti -= 1
+        keep.append(data[-dk:])
+        data = numpy.concatenate(keep)
     # spin
     tmplt = lmn + '/{}'
     group = tmplt.format('spin')
