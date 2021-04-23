@@ -3,7 +3,10 @@ import pkg_resources
 import numpy
 import h5py
 from scipy.interpolate import CubicSpline
+from scipy.interpolate import InterpolatedUnivariateSpline
 
+# the maximum spin we'll allow; this is based on what is in the data files
+MAX_SPIN = 0.9997
 
 # solar masses in seconds
 MTSUN = 4.925491025543576e-06
@@ -32,7 +35,8 @@ def _create_spline(name, reim, l, m, n):
             y = y.imag.astype(float)
         else:
             raise ValueError("reim must be eiter 're' or 'im'")
-    return CubicSpline(x, y, axis=0, bc_type='natural', extrapolate=False)
+    #return CubicSpline(x, y, axis=0, bc_type='natural', extrapolate=False)
+    return InterpolatedUnivariateSpline(x, y)
 
 
 def _getspline(name, reim, l, m, n, cache):
@@ -47,8 +51,8 @@ def _getspline(name, reim, l, m, n, cache):
 
 def _checkspin(spin):
     """Checks that the spin is in bounds."""
-    if abs(spin) > 0.9999:
-        raise ValueError("|spin| must be < 0.9999")
+    if abs(spin) > MAX_SPIN:
+        raise ValueError("|spin| must be < {}".format(MAX_SPIN))
     return
 
 
