@@ -35,6 +35,53 @@ def _create_spline(name, reim, l, m, n):
     return CubicSpline(x, y, axis=0, bc_type='natural', extrapolate=False)
 
 
+def _getspline(name, reim, l, m, n, cache):
+    """Gets a spline."""
+    try:
+        spline = cache[l, abs(m), n]
+    except KeyError:
+        spline = _create_spline(name, reim, l, m, n)
+        cache[l, abs(m), n] = spline
+    return spline
+
+
+def _checkspin(spin):
+    """Checks that the spin is in bounds."""
+    if abs(spin) > 0.9999:
+        raise ValueError("|spin| must be < 0.9999")
+    return
+
+
+def kerr_omega(spin, l, m, n):
+    """Returns the dimensionless complex angular frequency of a Kerr BH.
+
+    Parmeters
+    ---------
+    spin : float
+        The dimensionless spin. Must be in [-0.9999, 0.9999].
+    l : int
+        The l index.
+    m : int
+        The m index.
+    n : int
+        The overtone number (where n=0 is the fundamental mode).
+
+    Returns
+    -------
+    complex :
+        The complex angular frequency.
+    """
+    _checkspin(spin)
+    respline = _getspline('omega', 're', l, m, n, _reomega_splines)
+    imspline = _getspline('omega', 'im', l, m, n, _imomega_splines)
+    # if m is 0, use the absolute value of the spin
+    if m == 0:
+        spin = abs(spin)
+    # negate the frequency if m < 0
+    sign = (-1)**int(m < 0)
+    return sign*respline(spin) + 1j*imspline(spin)
+
+
 def kerr_freq(mass, spin, l, m, n):
     """Returns the QNM frequency for a Kerr black hole.
 
@@ -56,13 +103,8 @@ def kerr_freq(mass, spin, l, m, n):
     float :
         The frequency (in Hz) of the requested mode.
     """
-    if abs(spin) > 0.9999:
-        raise ValueError("|spin| must be < 0.9999")
-    try:
-        spline = _reomega_splines[l, abs(m), n]
-    except KeyError:
-        spline = _create_spline('omega', 're', l, m, n)
-        _reomega_splines[l, abs(m), n] = spline
+    _checkspin(spin)
+    spline = _getspline('omega', 're', l, m, n, _reomega_splines)
     # if m is 0, use the absolute value of the spin
     if m == 0:
         spin = abs(spin)
@@ -92,14 +134,12 @@ def kerr_tau(mass, spin, l, m, n):
     float :
         The frequency (in Hz) of the requested mode.
     """
-    if abs(spin) > 0.9999:
-        raise ValueError("|spin| must be < 0.9999")
-    try:
-        spline = _imomega_splines[l, abs(m), n]
-    except KeyError:
-        spline = _create_spline('omega', 'im', l, m, n)
-        _imomega_splines[l, abs(m), n] = spline
+    _checkspin(spin)
+    spline = _getspline('omega', 'im', l, m, n, _imomega_splines)
     # if m is 0, use the absolute value of the spin
     if m == 0:
         spin = abs(spin)
+    # Note: Berti et al. [arXiv:0512160] used the convention
+    # h+ + ihx ~ e^{iwt}, (see Eq. 2.4) so we
+    # need to negate the spline for tau to have the right sign.
     return -mass*MTSUN / spline(spin)
