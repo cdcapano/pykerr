@@ -69,7 +69,8 @@ def _gamma(jj, k1, k2, aw, s):
     return 2 * aw * (jj + k1 + k2 + s)
 
 
-def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, max_recursion=1000):
+def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
+            max_recursion=1000):
     r"""Calculate the normalization constant for a spheroidal harmonic.
 
     The normalization is such that:
@@ -100,6 +101,9 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, max_recursion=1000):
     tol : float, optional
         Tolerance used for determining when to stop the sum over coefficients
         in the spheroidal harmonics (see Eq. 18 of Leaver). Default is 1e-8.
+    maxtol : float, optional
+        Maximum allowed error in the sum over coefficients in the spheroidal
+        harmonics. Default it 1e-4.
     max_recursion : int, optional
         Maximum number of terms that will be used in the sum over coefficients
         in the spheroidal harmonics (see Eq. 18 of Leaver). If the number of
@@ -109,11 +113,11 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, max_recursion=1000):
     thetas = numpy.linspace(0, numpy.pi, num=npoints)
     slm = spheroidal(thetas, spin, l, m, n, s=s, tol=tol,
                      max_recursion=max_recursion, normalize=False)
-    return (2*numpy.pi*numpy.trapz(slm.conj()*slm*numpy.sin(thetas),
+    return (2*numpy.pi*numpy.trapz((slm.conj()*slm).real*numpy.sin(thetas),
                                    dx=thetas[1]))**(-0.5)
 
 
-def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-5,
+def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
            max_recursion=1000, normalize=True):
     r"""Calculate the spin-weighted spheroidal harmonic.
 
@@ -228,7 +232,7 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-5,
 _npslm = numpy.frompyfunc(_pyslm, 11, 1)
 
 
-def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-5,
+def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
                max_recursion=1000, normalize=True):
     # done this way to vectorize the function
     out = _npslm(theta, spin, l, m, n, s, phi, tol, maxtol, max_recursion,
