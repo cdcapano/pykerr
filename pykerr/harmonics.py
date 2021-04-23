@@ -67,9 +67,54 @@ def _gamma(jj, k1, k2, aw, s):
     """
     return 2 * aw * (jj + k1 + k2 + s)
 
-def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
-               max_recursion=1000, debug=False):
-    """Calculate the spin-weighted spheroidal harmonic.
+
+def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, max_recursion=1000):
+    r"""Calculate the normalization constant for a spheroidal harmonic.
+
+    The normalization is such that:
+
+    .. math::
+
+        \int_{0}^{2\pi}\int_{0}^{\pi} |{}_{-s}S_{\ell m}(J,\theta,\phi)|^2
+            \sin(\theta)\mathrm{d}\theta \mathrm{d}\phi = 1
+
+    where :math:`J` is the spin of the black hole.
+
+    The integral is calulcated using the trapezoidal rule.
+
+    Parameters
+    ----------
+    spin : float
+        The dimensionless spin of the black hole.
+    l : int
+        The l index.
+    m : int
+        The m index.
+    n : int, optional
+        The overtone number. Default is 0. Currently, only 0 is supported.
+    s : int, optional
+        The spin number. Must be either 0, -1, or -2. Default is -2.
+    npoints : int, optional
+        The number of points to use in the integral. Default is 1000.
+    tol : float, optional
+        Tolerance used for determining when to stop the sum over coefficients
+        in the spheroidal harmonics (see Eq. 18 of Leaver). Default is 1e-8.
+    max_recursion : int, optional
+        Maximum number of terms that will be used in the sum over coefficients
+        in the spheroidal harmonics (see Eq. 18 of Leaver). If the number of
+        terms exceeds this (meaning that the magnitude of each term is larger
+        than ``tol``), a ValueError will be raised. Default is 1000.
+    """
+    thetas = numpy.linspace(0, numpy.pi, num=npoints)
+    slm = spheroidal(thetas, spin, l, m, n, s=s, tol=tol,
+                     max_recursion=max_recursion, normalize=False)
+    return (2*numpy.pi*numpy.trapz(slm.conj()*slm*numpy.sin(thetas),
+                                   dx=thetas[1]))**(-0.5)
+
+
+def _spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
+                max_recursion=1000, normalize=True):
+    r"""Calculate the spin-weighted spheroidal harmonic.
 
     See Eq. 18 of E. W. Leaver (1985)
     [`doi:10.1098/rspa.1985.0119` <https://doi.org/10.1098/rspa.1985.0119>].
@@ -78,7 +123,7 @@ def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
 
     Parameters
     ----------
-    theta : float or array
+    theta : float
         The polar angle of the observer with respect to the black hole's
         spin.
     spin : float
@@ -90,15 +135,28 @@ def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
     n : int, optional
         The overtone number. Default is 0. Currently, only 0 is supported.
     s : int, optional
-        The spin number. Default is -2.
-    phi : float or array, optional
+        The spin number. Must be either 0, -1, or -2. Default is -2.
+    phi : float, optional
         The azimuthal angle of the observer. Default is 0.
+    tol : float, optional
+        Tolerance used for determining when to stop the sum over coefficients
+        (see Eq. 18 of Leaver). Default is 1e-8.
+    max_recursion : int, optional
+        Maximum number of terms that will be used in the sum over coefficients
+        (see Eq. 18 of Leaver). If the number of terms exceeds this (meaning
+        that the magnitude of each term is larger than ``tol``), a ValueError
+        will be raised. Default is 1000.
+    normalize : bool, optional
+        Normalize the harmonic before returning. The normalization is such
+        that the harmonic integrates to 1 over the unit sphere.
 
     Returns
     -------
     complex :
         The value of the spheroidal harmonic.
     """
+    if not s in [-2, -1, 0]:
+        raise ValueError("s must be either -2, -1, or 0")
     u = numpy.cos(theta)
     alm = kerr_alm(spin, l, m, n)
     # prefactors
@@ -143,10 +201,18 @@ def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8,
         raise ValueError("maximum recursion exceeded; current delta is "
                          "{}".format(delta))
     # norm (Eq. 18 of Leaver)
-    slmnorm = numpy.exp(aw*u) * (1 + u)**k1 *  (1 - u)**k2
-    slm *= slmnorm
+    norm = numpy.exp(aw*u + 1j*m*phi) * (1 + u)**k1 *  (1 - u)**k2
+    if normalize:
+        norm *= slmnorm(spin, l, m, n, s=s, tol=tol,
+                        max_recursion=max_recursion)
+    slm *= norm
     return slm
-        
+
+
+# vectorize
+spheroidal = numpy.vectorize(_spheroidal)
+spheroidal.__doc__ = _spheroidal.__doc__
+
 
 def lalspheroidal(inclination, spin, l, m, n=0, s=-2, azimuthal=0.):
     """Calculate the spin-weighted spheroidal harmonic.
