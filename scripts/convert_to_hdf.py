@@ -33,9 +33,8 @@ regex = re.compile(r'n([1-9])l([2-9])m(m*[0-9])')
 # according to https://centra.tecnico.ulisboa.pt/network/grit/files/ringdown/,
 # the file format for the Kerr QNM are:
 # a/M, Re[M omega}, Im[M omega], Re[Alm], Im[Alm] 
-dtype = [('spin', numpy.float32),
-         ('omegaR', numpy.float32), ('omegaI', numpy.float32),
-         ('ReAlm', numpy.float32), ('ImAlm', numpy.float32)]
+dtype = [('spin', float), ('omegaR', float), ('omegaI', float),
+         ('ReAlm', float), ('ImAlm', float)]
 
 qnm = {}
 for datfn in datfiles:
@@ -75,21 +74,31 @@ out = h5py.File(opts.output_file, 'w')
 group = '{}/{}'
 for lmn, data in qnm.items():
     if opts.thin is not None:
-        data = data[::opts.thin]
+        # make sure to preserve last 3 values close to the boundaries, so
+        # that the cubic spline does the right thing, then every 2 values
+        # for the next six, until using the full thin
+        keep1 = data[:3]
+        keep2 = data[3:9:2]
+        keepn1 = data[-3:]
+        keepn2 = data[-9:-3:2]
+        data = numpy.concatenate((keep1, keep2, data[9:-9:opts.thin],
+                                  keepn2, keepn1))
     # spin
     tmplt = lmn + '/{}'
     group = tmplt.format('spin')
+    # the spins are only tabluated to 1e-4, so can get away with single
+    # precision
     out.create_dataset(group, data.shape, dtype=numpy.float32,
                        compression="gzip")
     out[group][:] = data['spin']
     # omega
     group = tmplt.format('omega')
-    out.create_dataset(group, data.shape, dtype=numpy.complex64,
+    out.create_dataset(group, data.shape, dtype=numpy.complex128,
                        compression="gzip")
     out[group][:] = data['omegaR'] + 1j*data['omegaI']
     # angular separtion constant
     group = tmplt.format('alm')
-    out.create_dataset(group, data.shape, dtype=numpy.complex64,
+    out.create_dataset(group, data.shape, dtype=numpy.complex128,
                        compression='gzip')
     out[group][:] = data['ReAlm'] + 1j*data['ImAlm']
 out.close()
