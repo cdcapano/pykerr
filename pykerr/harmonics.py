@@ -10,6 +10,7 @@ from .qnm import (_getspline, kerr_omega, _checkspin)
 # we'll cache the splines
 _realm_splines = {}
 _imalm_splines = {}
+_norm_splines = {}
 
 
 def kerr_alm(spin, l, m, n):
@@ -43,7 +44,6 @@ def kerr_alm(spin, l, m, n):
         alm = alm.conj()
     return alm 
 
-
 def _alpha(jj, k1):
     """Leaver's alpha coefficient for the Slm (Eq. 20 of Leaver).
 
@@ -70,7 +70,7 @@ def _gamma(jj, k1, k2, aw, s):
 
 
 def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
-            max_recursion=1000):
+            max_recursion=1000, use_cache=True):
     r"""Calculate the normalization constant for a spheroidal harmonic.
 
     The normalization is such that:
@@ -109,7 +109,18 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
         in the spheroidal harmonics (see Eq. 18 of Leaver). If the number of
         terms exceeds this (meaning that the magnitude of each term is larger
         than ``tol``), a ValueError will be raised. Default is 1000.
+    use_cache : bool, optional
+        Use tabulated values in the cached data, if available. A cubic spline
+        is used to interpolate to spins that are not in the cache. Default is
+        True.
     """
+    if use_cache:
+        try:
+            spline = _getspline('s{}norm'.format(abs(s)), None, l, m, n,
+                                _norm_splines)
+            return spline(spin)
+        except KeyError:
+            pass
     thetas = numpy.linspace(0, numpy.pi, num=npoints)
     slm = spheroidal(thetas, spin, l, m, n, s=s, tol=tol,
                      max_recursion=max_recursion, normalize=False)

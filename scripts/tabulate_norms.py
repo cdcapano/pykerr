@@ -46,8 +46,8 @@ for mode in spins:
         if not ii % 10:
             print("{} / {}".format(ii, norm.size), end="\r")
         norm[ii] = slmnorm(a, l, m, n, s=-opts.s, npoints=opts.npoints,
-                                 tol=opts.tol,
-                                 max_recursion=opts.max_recursion)
+                           tol=opts.tol, max_recursion=opts.max_recursion,
+                           use_cache=False)
     print("")
     norms[mode] = numpy.array(list(norm))
 

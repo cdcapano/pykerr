@@ -32,8 +32,6 @@ def _create_spline(name, reim, l, m, n):
             y = y.real.astype(float)
         elif reim == 'im':
             y = y.imag.astype(float)
-        else:
-            raise ValueError("reim must be eiter 're' or 'im'")
     return CubicSpline(x, y, axis=0, bc_type='natural', extrapolate=False)
 
 
