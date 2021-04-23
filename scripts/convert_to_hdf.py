@@ -7,15 +7,23 @@ import glob
 import re
 import os
 
+"""Converts text files downloaded from Cardoso's webpage into hdf file."""
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input-directory', required=True,
                      help='The directory to read. Will load all dat files '
                           'in the given directory.')
 parser.add_argument('-o', '--output-file', required=True,
                     help='The file to write out to. Must be an hdf file.')
-
-
+parser.add_argument('--thin', type=int, default=None,
+                    help="Thin the tabulated values by the given amount. "
+                         "Must be an odd integer > 1, so as to preserve "
+                         "end points and zero spin.")
 opts = parser.parse_args()
+
+if opts.thin is not None:
+    if opts.thin < 0 or (-1)**opts.thin > 0:
+        raise ValueError('--thin must be a positive odd integer')
 
 datfiles = glob.glob('{}/*.dat'.format(opts.input_directory))
 
@@ -66,20 +74,22 @@ for datfn in datfiles:
 out = h5py.File(opts.output_file, 'w')
 group = '{}/{}'
 for lmn, data in qnm.items():
+    if opts.thin is not None:
+        data = data[::opts.thin]
     # spin
     tmplt = lmn + '/{}'
     group = tmplt.format('spin')
     out.create_dataset(group, data.shape, dtype=numpy.float32,
                        compression="gzip")
-    out[group][:] = qnm[lmn]['spin']
+    out[group][:] = data['spin']
     # omega
     group = tmplt.format('omega')
     out.create_dataset(group, data.shape, dtype=numpy.complex64,
                        compression="gzip")
-    out[group][:] = qnm[lmn]['omegaR'] + 1j*qnm[lmn]['omegaI']
+    out[group][:] = data['omegaR'] + 1j*data['omegaI']
     # angular separtion constant
     group = tmplt.format('alm')
     out.create_dataset(group, data.shape, dtype=numpy.complex64,
                        compression='gzip')
-    out[group][:] = qnm[lmn]['ReAlm'] + 1j*qnm[lmn]['ImAlm']
+    out[group][:] = data['ReAlm'] + 1j*data['ImAlm']
 out.close()
