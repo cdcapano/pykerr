@@ -1,7 +1,7 @@
 import logging
 import numpy
 
-from .qnm import (_getspline, kerr_omega, _checkspin)
+from .qnm import (_getspline, _qnmomega, _checkspin)
 
 """Functions to calculate spheroidal and spherical harmonics.
 """
@@ -122,7 +122,7 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
         except KeyError:
             pass
     thetas = numpy.linspace(0, numpy.pi, num=npoints)
-    slm = spheroidal(thetas, spin, l, m, n, s=s, tol=tol,
+    slm = spheroidal(thetas, spin, l, m, n, s=s, tol=tol, maxtol=maxtol,
                      max_recursion=max_recursion, normalize=False)
     return (2*numpy.pi*numpy.trapz((slm.conj()*slm).real*numpy.sin(thetas),
                                    dx=thetas[1]))**(-0.5)
@@ -182,7 +182,7 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
     u = numpy.cos(theta)
     alm = kerr_alm(spin, l, m, n)
     # prefactors
-    omega = kerr_omega(spin, l, m, n)
+    omega = _qnmomega(spin, l, m, n)
     aw = spin * omega
     # Note: Leaver used the convention 2M = 1, meaning that our spin should
     # be halved and omega doubled. However, in everything below, we only use

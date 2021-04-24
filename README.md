@@ -27,9 +27,9 @@ python setup.py install
 
 ```
 >>> import pykerr
->> pykerr.kerr_freq(200., 0.7, 2, 2, 0)
+>> pykerr.qnmfreq(200., 0.7, 2, 2, 0)
 86.04823229677822
->>> pykerr.kerr_tau(200., 0.7, 2, 2, 0)
+>>> pykerr.qnmtau(200., 0.7, 2, 2, 0)
 0.012192884850631896
 ```
 

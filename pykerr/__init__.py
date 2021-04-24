@@ -1,2 +1,2 @@
-from .qnm import (kerr_freq, kerr_tau)
+from .qnm import (qnmfreq, qnmtau)
 from .harmonics import (spheroidal, spherical)
