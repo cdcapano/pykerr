@@ -22,20 +22,29 @@ parser.add_argument('-s', type=int, choices=[0, 1, 2],
                     help='The (-) spin weight. Must be either 0, 1, or 2.')
 parser.add_argument('--npoints', type=int, default=1000,
                     help="The number of points to use in the integrals.")
-parser.add_argument("--max-recursion", type=int, default=1000,
-                    help="Maximun recursion to use for Slm calculation.")
 parser.add_argument("--tol", type=float, default=1e-8,
                     help="The tolerance for the Slm calculation.")
+parser.add_argument("--maxtol", type=float, default=1e-4,
+                    help="The max tolerance for the Slm calculation.")
+parser.add_argument("--max-recursion", type=int, default=1000,
+                    help="Maximun recursion to use for Slm calculation.")
+parser.add_argument('--skip-if-exists', action='store_true', default=False,
+                    help="Skip any modes that already have a norm written.")
 opts = parser.parse_args()
+
+# group name for norm
+tmplt = '{}/' + 's{}'.format(opts.s) + 'norm'
 
 # load the spins and modes from the data file
 print("loading spins")
 spins = {}
 with h5py.File(opts.input_file, 'r') as fp:
     for mode in fp:
+        if opts.skip_if_exists and tmplt.format(mode) in fp:
+            print("skipping {}".format(mode))
+            continue
         spins[mode] = fp[mode]['spin'][()]
 
-norms = {}
 print("computing")
 for mode in spins:
     print(mode)
@@ -45,20 +54,18 @@ for mode in spins:
     for ii, a in enumerate(spins[mode]):
         if not ii % 10:
             print("{} / {}".format(ii, norm.size), end="\r")
-        norm[ii] = slmnorm(a, l, m, n, s=-opts.s, npoints=opts.npoints,
-                           tol=opts.tol, max_recursion=opts.max_recursion,
+        norm[ii] = slmnorm(numpy.float32(a), l, m, n, s=-opts.s,
+                           npoints=opts.npoints,
+                           tol=opts.tol, maxtol=opts.maxtol,
+                           max_recursion=opts.max_recursion,
                            use_cache=False)
-    print("")
-    norms[mode] = numpy.array(list(norm))
-
-# write
-print("writing")
-tmplt = '{}/' + 's{}'.format(opts.s) + 'norm'
-with h5py.File(opts.input_file, 'a') as fp:
-    for mode, norm in norms.items():
+    # write
+    print("writing", end="\r")
+    with h5py.File(opts.input_file, 'a') as fp:
         group = tmplt.format(mode)
         if group not in fp:
             fp.create_dataset(group, norm.shape, dtype=numpy.float32,
                               compression="gzip")
         fp[group][:] = norm
+    print("")
 print("done")
