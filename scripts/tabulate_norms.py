@@ -64,7 +64,7 @@ for mode in spins:
     with h5py.File(opts.input_file, 'a') as fp:
         group = tmplt.format(mode)
         if group not in fp:
-            fp.create_dataset(group, norm.shape, dtype=numpy.float32,
+            fp.create_dataset(group, norm.shape, dtype=norm.dtype,
                               compression="gzip")
         fp[group][:] = norm
     print("")
