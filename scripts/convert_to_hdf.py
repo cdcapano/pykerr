@@ -72,8 +72,13 @@ for datfn in datfiles:
 # now write
 out = h5py.File(opts.output_file, 'w')
 group = '{}/{}'
+# we'll store the spins separately since they're the same for all m != 0
+# and m = 0 modes
+sp = None
+spm0 = None
 for lmn, data in qnm.items():
     print(lmn)
+    tmplt = lmn + '/{}'
     if opts.thin is not None:
         # perserve the last 9 values close to the boundaries, then increase
         # the thinning to the desired amount
@@ -90,13 +95,17 @@ for lmn, data in qnm.items():
         keep.append(data[-dk:])
         data = numpy.concatenate(keep)
     # spin
-    tmplt = lmn + '/{}'
-    group = tmplt.format('spin')
-    # the spins are only tabluated to 1e-4, so can get away with single
-    # precision
-    out.create_dataset(group, data.shape, dtype=numpy.float32,
-                       compression="gzip")
-    out[group][:] = data['spin']
+    thissp = numpy.round(10000*data['spin']).astype(int)
+    if lmn[1] == '0':
+        if spm0 is None:
+            spm0 = thissp
+        elif not (spm0 == thissp).all():
+            raise ValueError('got different spins for lmn {}'.format(lmn))
+    else:
+        if sp is None:
+            sp = thissp
+        elif not (sp == thissp).all():
+            raise ValueError('got different spins for lmn {}'.format(lmn))
     # omega
     group = tmplt.format('omega')
     out.create_dataset(group, data.shape, dtype=numpy.complex128,
@@ -107,4 +116,9 @@ for lmn, data in qnm.items():
     out.create_dataset(group, data.shape, dtype=numpy.complex128,
                        compression='gzip')
     out[group][:] = data['ReAlm'] + 1j*data['ImAlm']
+# write the spins
+out.create_dataset('spin', sp.shape, dtype=numpy.int16, compression="gzip")
+out['spin'][:] = sp
+out.create_dataset('spinm0', spm0.shape, dtype=numpy.int16, compression="gzip")
+out['spinm0'][:] = spm0
 out.close()

@@ -26,12 +26,17 @@ def _create_spline(name, reim, l, m, n):
     except OSError:
         raise ValueError("unsupported lmn {}{}{}".format(l, m, n))
     with h5py.File(dfile, 'r') as fp:
-        x = fp[lmn]['spin'][()].astype(numpy.float64)
+        # load the spin
+        if m == 0:
+            sp = 'spinm0'
+        else:
+            sp = 'spin'
+        x = 1e-4 * fp[sp][()]
         y = fp[lmn][name][()]
         if reim == 're':
-            y = y.real.astype(numpy.float64)
+            y = y.real
         elif reim == 'im':
-            y = y.imag.astype(numpy.float64)
+            y = y.imag
     return CubicSpline(x, y, axis=0, bc_type='not-a-knot', extrapolate=False)
 
 
