@@ -33,8 +33,11 @@ regex = re.compile(r'n([1-9])l([2-9])m(m*[0-9])')
 # according to https://centra.tecnico.ulisboa.pt/network/grit/files/ringdown/,
 # the file format for the Kerr QNM are:
 # a/M, Re[M omega}, Im[M omega], Re[Alm], Im[Alm] 
-dtype = [('spin', float), ('omegaR', float), ('omegaI', float),
-         ('ReAlm', float), ('ImAlm', float)]
+indtype = [('spin', float), ('omegaR', float), ('omegaI', float),
+           ('ReAlm', float), ('ImAlm', float)]
+# the data type we'll convert to
+outdtype = [('spin', numpy.int16), ('omega', numpy.complex128),
+            ('alm', numpy.complex128)]
 
 qnm = {}
 for datfn in datfiles:
@@ -48,17 +51,44 @@ for datfn in datfiles:
     nn = int(match.group(1)) - 1
     ll = int(match.group(2))
     mm = int(match.group(3).replace('m', '-'))
-    data = numpy.loadtxt(datfn, dtype=dtype)
+    d = numpy.loadtxt(datfn, dtype=indtype)
     # some values that should be 0 are set to a tiny amount; correct them
     # to be zero
-    for name, _ in dtype:
-        mask = abs(data[name]) < 1e-12
-        data[name][mask] = 0.
+    for name, _ in indtype:
+        mask = abs(d[name]) < 1e-12
+        d[name][mask] = 0.
+    # convert
+    data = numpy.zeros(d.size, dtype=outdtype)
+    # the spins should be [-0.9999, 0.9999], incrementing by 0.0001, so we'll
+    # just create a range of integers
+    data['spin'] = numpy.round(10000*d['spin']).astype(numpy.int16) 
+    # make sure the spins are what we expect
+    if not (numpy.diff(data['spin']) == 1).all():
+        raise ValueError("spins appear not to increment montonically by "
+                         "0.0001")
+    data['omega'] = d['omegaR'] + 1j*d['omegaI']
+    data['alm'] = d['ReAlm'] + 1j*d['ImAlm']
     # we'll use the convention that the -m modes correspond to negative spin
     if mm < 0:
         data['spin'] *= -1
         # flip and exclude the 0 frequency, since it should be in the +m
         data = data[::-1][:-1]
+    elif mm == 0:
+        # for m = 0, -spin corresponds to taking -omega.conj() and Alm.conj().
+        # Although the could be done on the fly, we'll explicitly store -spins
+        # to also ensure the cubic spline does the right thing close to
+        # spin = 0, and to allow m = 0 to be treated like all the other modes
+        # when loading the table data.
+        d2 = numpy.zeros(2*data.size-1, dtype=outdtype)
+        zsidx = data.size-1
+        # -spin
+        d2['spin'][:zsidx] = -data['spin'][1:][::-1]
+        d2['omega'][:zsidx] = -data['omega'].conj()[1:][::-1]
+        d2['alm'][:zsidx] = data['alm'].conj()[1:][::-1]
+        # +spin, just copy
+        for (name, _) in outdtype:
+            d2[name][zsidx:] = data[name][:]
+        data = d2
     lmn = '{}{}{}'.format(ll, abs(mm), nn)
     if lmn in qnm:
         # already there, concatenate
@@ -72,10 +102,8 @@ for datfn in datfiles:
 # now write
 out = h5py.File(opts.output_file, 'w')
 group = '{}/{}'
-# we'll store the spins separately since they're the same for all m != 0
-# and m = 0 modes
+# we'll store the spins separately since they're the same for all modes
 sp = None
-spm0 = None
 for lmn, data in qnm.items():
     print(lmn)
     tmplt = lmn + '/{}'
@@ -95,30 +123,19 @@ for lmn, data in qnm.items():
         keep.append(data[-dk:])
         data = numpy.concatenate(keep)
     # spin
-    thissp = numpy.round(10000*data['spin']).astype(int)
-    if lmn[1] == '0':
-        if spm0 is None:
-            spm0 = thissp
-        elif not (spm0 == thissp).all():
-            raise ValueError('got different spins for lmn {}'.format(lmn))
-    else:
-        if sp is None:
-            sp = thissp
-        elif not (sp == thissp).all():
-            raise ValueError('got different spins for lmn {}'.format(lmn))
-    # omega
-    group = tmplt.format('omega')
-    out.create_dataset(group, data.shape, dtype=numpy.complex128,
-                       compression="gzip")
-    out[group][:] = data['omegaR'] + 1j*data['omegaI']
-    # angular separtion constant
-    group = tmplt.format('alm')
-    out.create_dataset(group, data.shape, dtype=numpy.complex128,
-                       compression='gzip')
-    out[group][:] = data['ReAlm'] + 1j*data['ImAlm']
+    thissp = data['spin']
+    if sp is None:
+        sp = thissp
+    elif not (sp == thissp).all():
+        raise ValueError('got different spins for lmn {}'.format(lmn))
+    # the rest
+    for (name, dt) in outdtype:
+        if name != 'spin':
+            group = tmplt.format(name)
+            out.create_dataset(group, data.shape, dtype=dt,
+                               compression="gzip")
+            out[group][:] = data[name]
 # write the spins
 out.create_dataset('spin', sp.shape, dtype=numpy.int16, compression="gzip")
 out['spin'][:] = sp
-out.create_dataset('spinm0', spm0.shape, dtype=numpy.int16, compression="gzip")
-out['spinm0'][:] = spm0
 out.close()
