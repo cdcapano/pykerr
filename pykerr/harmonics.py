@@ -7,6 +7,11 @@ from .qnm import (_getspline, _qnmomega, _checkspin)
 """
 
 
+# to print out additional messages; set to True if you're having convergence
+# issues and are trying to figure out why
+_DEBUG = False
+
+
 # we'll cache the splines
 _realm_splines = {}
 _imalm_splines = {}
@@ -67,7 +72,7 @@ def _gamma(jj, k1, k2, aw, s):
     return 2 * aw * (jj + k1 + k2 + s)
 
 
-def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
+def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-4, maxtol=0.01,
             max_recursion=1000, use_cache=True):
     r"""Calculate the normalization constant for a spheroidal harmonic.
 
@@ -99,10 +104,12 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
         The number of points to use in the integral. Default is 1000.
     tol : float, optional
         Tolerance used for determining when to stop the sum over coefficients
-        in the spheroidal harmonics (see Eq. 18 of Leaver). Default is 1e-8.
+        (see Eq. 18 of Leaver). The sum stops when both the real part and
+        the imaginary part of the last term is less than the specified value.
+        Default is 1e-4.
     maxtol : float, optional
         Maximum allowed error in the sum over coefficients in the spheroidal
-        harmonics. Default it 1e-4.
+        harmonics. Default it 0.01.
     max_recursion : int, optional
         Maximum number of terms that will be used in the sum over coefficients
         in the spheroidal harmonics (see Eq. 18 of Leaver). If the number of
@@ -131,7 +138,7 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
                                    dx=thetas[1]))**(-0.5)
 
 
-def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
+def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
            max_recursion=1000, normalize=True, use_cache=True):
     r"""Calculate the spin-weighted spheroidal harmonic.
 
@@ -160,7 +167,9 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
         The azimuthal angle of the observer. Default is 0.
     tol : float, optional
         Tolerance used for determining when to stop the sum over coefficients
-        (see Eq. 18 of Leaver). Default is 1e-8.
+        (see Eq. 18 of Leaver). The sum stops when both the real part and
+        the imaginary part of the last term is less than the specified value.
+        Default is 1e-4.
     maxtol : float, optional
         Maximum allowed error in the sum over coefficients. If the maximum
         recursion is hit and the difference between consecutuive terms still
@@ -217,8 +226,13 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
     a_n = -a0 * beta0/alpha0  # a1
     # we sum until the difference in terms is ~ 0
     delta = numpy.inf
-    while abs(delta) > tol and jj < max_recursion:
+    if _DEBUG:
+        deltas = [None]*max_recursion
+    while ((abs(delta.real) > tol or abs(delta.imag) > tol)
+           and jj < max_recursion):
         delta = a_n * b_n**jj
+        if _DEBUG:
+            deltas[jj-1] = delta
         slm += delta 
         # update for next loop
         alpha_n = _alpha(jj, k1)
@@ -229,16 +243,23 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
         a_nm1 = a_n
         a_n = a_np1
         jj += 1
-    if jj == max_recursion and abs(delta) > maxtol:
-        raise ValueError("maximum recursion exceeded; current |delta| is "
-                         "{}. Parameters are: theta={}, spin={}, l={}, m={}, "
+    if _DEBUG:
+        logging.debug("Used %i terms for parameters: theta=%f, spin=%f, l=%i, "
+                      "m=%i, n=%i, s=%i, phi=%f", jj, theta, spin, l, m, n, s,
+                      phi)
+    if jj == max_recursion and (abs(delta.real) > maxtol
+                                or abs(delta.imag) > maxtol):
+        if _DEBUG:
+            logging.debug("deltas: %s", '\n'.join(map(str, deltas)))
+        raise ValueError("maximum recursion exceeded; current delta is "
+                         "{}. Parameters: theta={}, spin={}, l={}, m={}, "
                          "n={}, s={}, phi={}"
-                         .format(abs(delta), theta, spin, l, m, n, s, phi))
+                         .format(delta, theta, spin, l, m, n, s, phi))
     elif jj == max_recursion:
         logging.warning("Did not get to target tolerance of {} for Slm. "
-                        "Actual tolerance is {}. Parameters are: theta={}, "
+                        "Actual tolerance is {}. Parameters: theta={}, "
                         "spin={}, l={}, m={}, n={}, s={}, phi={}"
-                         .format(tol, abs(delta), theta, spin, l, m, n, s,
+                         .format(tol, delta, theta, spin, l, m, n, s,
                                  phi))
     # norm (Eq. 18 of Leaver)
     norm = numpy.exp(aw*u + 1j*m*phi) * (1 + u)**k1 *  (1 - u)**k2
@@ -253,7 +274,7 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
 _npslm = numpy.frompyfunc(_pyslm, 12, 1)
 
 
-def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
+def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
                max_recursion=1000, normalize=True, use_cache=True):
     # done this way to vectorize the function
     out = _npslm(theta, spin, l, m, n, s, phi, tol, maxtol, max_recursion,
