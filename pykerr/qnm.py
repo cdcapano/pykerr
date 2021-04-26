@@ -59,13 +59,14 @@ def _qnmomega(spin, l, m, n):
     Parmeters
     ---------
     spin : float
-        The dimensionless spin. Must be in [-0.9999, 0.9999].
+        Dimensionless spin. Must be in [-0.9997, 0.9997].
     l : int
-        The l index.
+        The l index. Up to l=7 is supported.
     m : int
-        The m index.
+        The m index. All +/-m for the given l are supported.
     n : int
-        The overtone number (where n=0 is the fundamental mode).
+        The overtone number (where n=0 is the fundamental mode). Up to n=7 is
+        supported.
 
     Returns
     -------
@@ -102,13 +103,14 @@ def _qnmfreq(mass, spin, l, m, n):
     mass : float
         Mass of the object (in solar masses).
     spin : float
-        Dimensionless spin. Must be in [-0.9999, 0.9999].
+        Dimensionless spin. Must be in [-0.9997, 0.9997].
     l : int
-        The l index.
+        The l index. Up to l=7 is supported.
     m : int
-        The m index.
+        The m index. All +/-m for the given l are supported.
     n : int
-        The overtone number (where n=0 is the fundamental mode).
+        The overtone number (where n=0 is the fundamental mode). Up to n=7 is
+        supported.
 
     Returns
     -------
@@ -143,13 +145,14 @@ def _qnmtau(mass, spin, l, m, n):
     mass : float
         Mass of the object (in solar masses).
     spin : float
-        Dimensionless spin. Must be in [-0.9999, 0.9999].
+        Dimensionless spin. Must be in [-0.9997, 0.9997].
     l : int
-        The l index.
+        The l index. Up to l=7 is supported.
     m : int
-        The m index.
+        The m index. All +/-m for the given l are supported.
     n : int
-        The overtone number (where n=0 is the fundamental mode).
+        The overtone number (where n=0 is the fundamental mode). Up to n=7 is
+        supported.
 
     Returns
     -------

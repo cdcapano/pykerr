@@ -11,6 +11,7 @@ from .qnm import (_getspline, _qnmomega, _checkspin)
 _realm_splines = {}
 _imalm_splines = {}
 _norm_splines = {}
+_normnm_splines = {}
 
 
 def kerr_alm(spin, l, m, n):
@@ -86,11 +87,12 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
     spin : float
         The dimensionless spin of the black hole.
     l : int
-        The l index.
+        The l index. Up to m=7 is supported.
     m : int
-        The m index.
-    n : int, optional
-        The overtone number. Default is 0. Currently, only 0 is supported.
+        The m index. All +/-m for the given l are supported.
+    n : int
+        The overtone number (where n=0 is the fundamental mode). Up to n=7 is
+        supported.
     s : int, optional
         The spin number. Must be either 0, -1, or -2. Default is -2.
     npoints : int, optional
@@ -113,8 +115,12 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
     """
     if use_cache:
         try:
-            spline = _getspline('s{}norm'.format(abs(s)), None, l, m, n,
-                                _norm_splines)
+            if m < 0:
+                spline = _getspline('s{}nmnorm'.format(abs(s)), None, l, m, n,
+                                    _normnm_splines)
+            else:
+                spline = _getspline('s{}norm'.format(abs(s)), None, l, m, n,
+                                    _norm_splines)
             return spline(spin)
         except KeyError:
             pass
@@ -142,11 +148,12 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
     spin : float
         The dimensionless spin of the black hole.
     l : int
-        The l index.
+        The l index. Up to l=7 is supported.
     m : int
-        The m index.
-    n : int, optional
-        The overtone number. Default is 0. Currently, only 0 is supported.
+        The m index. All +/-m for the given l are supported.
+    n : int
+        The overtone number (where n=0 is the fundamental mode). Up to n=7 is
+        supported.
     s : int, optional
         The spin number. Must be either 0, -1, or -2. Default is -2.
     phi : float, optional
@@ -223,10 +230,10 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
         a_n = a_np1
         jj += 1
     if jj == max_recursion and abs(delta) > maxtol:
-        raise ValueError("maximum recursion exceeded; current delta is "
+        raise ValueError("maximum recursion exceeded; current |delta| is "
                          "{}. Parameters are: theta={}, spin={}, l={}, m={}, "
                          "n={}, s={}, phi={}"
-                         .format(delta, theta, spin, l, m, n, s, phi))
+                         .format(abs(delta), theta, spin, l, m, n, s, phi))
     elif jj == max_recursion:
         logging.warning("Did not get to target tolerance of {} for Slm. "
                         "Actual tolerance is {}. Parameters are: theta={}, "
@@ -236,7 +243,7 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
     # norm (Eq. 18 of Leaver)
     norm = numpy.exp(aw*u + 1j*m*phi) * (1 + u)**k1 *  (1 - u)**k2
     if normalize:
-        norm *= slmnorm(spin, l, m, n, s=s, tol=tol,
+        norm *= slmnorm(spin, l, m, n, s=s, tol=tol, maxtol=maxtol,
                         max_recursion=max_recursion, use_cache=use_cache)
     slm *= norm
     return slm

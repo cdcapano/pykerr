@@ -36,7 +36,8 @@ parser.add_argument('--nprocesses', type=int, default=1,
 opts = parser.parse_args()
 
 # group name for norm
-tmplt = '{}/' + 's{}'.format(opts.s) + 'norm'
+tmplt = '{}/' + 's{}norm'.format(opts.s)
+nmtmplt = '{}/' + 's{}nmnorm'.format(opts.s)
 
 # load the spins and modes from the data file
 with h5py.File(opts.input_file, 'r') as fp:
@@ -47,9 +48,13 @@ with h5py.File(opts.input_file, 'r') as fp:
     for name in fp:
         if name == 'spin':
             continue
-        if opts.skip_if_exists and tmplt.format(name) in fp:
-            print("skipping {}".format(name))
-            continue
+        if opts.skip_if_exists:
+            skip = tmplt.format(name) in fp
+            if name[1] != '0':
+                skip &= nmtmplt.format(name) in fp
+            if skip:
+                print("skipping {}".format(name))
+                continue
         modes.append(name)
         
 def getnorm(almn):
@@ -71,7 +76,12 @@ for mode in modes:
     print(mode)
     l, m, n = mode
     l, m, n = tuple(map(int, [l, m, n]))
+    # +m
     norm = numpy.array(list(mfunc(getnorm, [(a, l, m, n) for a in spins])))
+    # -m
+    if m != 0:
+        nmnorm = numpy.array(list(mfunc(getnorm,
+                                        [(a, l, -m, n) for a in spins])))
     # write
     print("writing", end="\r")
     with h5py.File(opts.input_file, 'a') as fp:
@@ -80,5 +90,11 @@ for mode in modes:
             fp.create_dataset(group, norm.shape, dtype=norm.dtype,
                               compression="gzip")
         fp[group][:] = norm
+        if m != 0:
+            group = nmtmplt.format(mode)
+            if group not in fp:
+                fp.create_dataset(group, norm.shape, dtype=norm.dtype,
+                                  compression="gzip")
+            fp[group][:] = nmnorm
     print("")
 print("done")
