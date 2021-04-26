@@ -9,7 +9,7 @@ pykerr needs to be installed first, with the data files downloaded.
 import argparse
 import h5py
 import numpy
-import multiprocessing
+from multiprocessing import Pool
 # override the MAX_SPIN so we cqn compute all values
 import pykerr.qnm
 pykerr.qnm.MAX_SPIN = 0.9999
@@ -30,6 +30,9 @@ parser.add_argument("--max-recursion", type=int, default=1000,
                     help="Maximun recursion to use for Slm calculation.")
 parser.add_argument('--skip-if-exists', action='store_true', default=False,
                     help="Skip any modes that already have a norm written.")
+parser.add_argument('--nprocesses', type=int, default=1,
+                    help="Parallelize over the given number of processes. "
+                         "Default is 1.")
 opts = parser.parse_args()
 
 # group name for norm
@@ -49,20 +52,26 @@ with h5py.File(opts.input_file, 'r') as fp:
             continue
         modes.append(name)
         
+def getnorm(almn):
+    a, l, m, n = almn
+    return slmnorm(1e-4*a, l, m, n, s=-opts.s,
+                   npoints=opts.npoints,
+                   tol=opts.tol, maxtol=opts.maxtol,
+                   max_recursion=opts.max_recursion,
+                   use_cache=False)
+
+if opts.nprocesses > 1:
+    pool = Pool(opts.nprocesses)
+    mfunc = pool.map
+else:
+    mfunc = map
+
 print("computing")
 for mode in modes:
     print(mode)
     l, m, n = mode
     l, m, n = tuple(map(int, [l, m, n]))
-    norm = numpy.zeros(spins.shape, dtype=numpy.float64)
-    for ii, a in enumerate(spins):
-        if not ii % 10:
-            print("{} / {}".format(ii, norm.size), end="\r")
-        norm[ii] = slmnorm(1e-4*a, l, m, n, s=-opts.s,
-                           npoints=opts.npoints,
-                           tol=opts.tol, maxtol=opts.maxtol,
-                           max_recursion=opts.max_recursion,
-                           use_cache=False)
+    norm = numpy.array(list(mfunc(getnorm, [(a, l, m, n) for a in spins])))
     # write
     print("writing", end="\r")
     with h5py.File(opts.input_file, 'a') as fp:
