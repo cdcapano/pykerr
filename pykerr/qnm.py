@@ -26,12 +26,8 @@ def _create_spline(name, reim, l, m, n):
     except OSError:
         raise ValueError("unsupported lmn {}{}{}".format(l, m, n))
     with h5py.File(dfile, 'r') as fp:
-        # load the spin
-        if m == 0:
-            sp = 'spinm0'
-        else:
-            sp = 'spin'
-        x = 1e-4 * fp[sp][()]
+        # load and convert the spin
+        x = 1e-4 * fp['spin'][()]
         y = fp[lmn][name][()]
         if reim == 're':
             y = y.real
@@ -79,12 +75,11 @@ def _qnmomega(spin, l, m, n):
     _checkspin(spin)
     respline = _getspline('omega', 're', l, m, n, _reomega_splines)
     imspline = _getspline('omega', 'im', l, m, n, _imomega_splines)
-    # if m is 0, use the absolute value of the spin
-    if m == 0:
-        spin = abs(spin)
-    # negate the frequency if m < 0
-    sign = (-1)**int(m < 0)
-    return sign*respline(spin) + 1j*imspline(spin)
+    omega = respline(spin) + 1j*imspline(spin)
+    # omega_{-m} = -omega_{m}.conj()
+    if m < 0:
+        omega = -omega.conj()
+    return omega
 
 
 # vectorize
@@ -122,12 +117,11 @@ def _qnmfreq(mass, spin, l, m, n):
     """
     _checkspin(spin)
     spline = _getspline('omega', 're', l, m, n, _reomega_splines)
-    # if m is 0, use the absolute value of the spin
-    if m == 0:
-        spin = abs(spin)
+    reomega = spline(spin)
     # negate the frequency if m < 0
-    sign = (-1)**int(m < 0)
-    return sign * spline(spin) / (2*numpy.pi*mass*MTSUN)
+    if m < 0:
+        reomega = -reomega
+    return reomega / (2*numpy.pi*mass*MTSUN)
 
 # vectorize
 _npqnmfreq = numpy.frompyfunc(_qnmfreq, 5, 1)
@@ -164,9 +158,6 @@ def _qnmtau(mass, spin, l, m, n):
     """
     _checkspin(spin)
     spline = _getspline('omega', 'im', l, m, n, _imomega_splines)
-    # if m is 0, use the absolute value of the spin
-    if m == 0:
-        spin = abs(spin)
     # Note: Berti et al. [arXiv:0512160] used the convention
     # h+ + ihx ~ e^{iwt}, (see Eq. 2.4) so we
     # need to negate the spline for tau to have the right sign.

@@ -35,9 +35,6 @@ def kerr_alm(spin, l, m, n):
     _checkspin(spin)
     respline = _getspline('alm', 're', l, m, n, _realm_splines)
     imspline = _getspline('alm', 'im', l, m, n, _imalm_splines)
-    # if m is 0, use the absolute value of the spin
-    if m == 0:
-        spin = abs(spin)
     alm = respline(spin) + 1j * imspline(spin)
     # conjugate if -m (see Eq. 2.7 of Berti et al., arXiv:0512160)
     if m < 0:
@@ -129,7 +126,7 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-8, maxtol=1e-4,
 
 
 def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
-           max_recursion=1000, normalize=True):
+           max_recursion=1000, normalize=True, use_cache=True):
     r"""Calculate the spin-weighted spheroidal harmonic.
 
     See Eq. 18 of E. W. Leaver (1985)
@@ -171,6 +168,12 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
     normalize : bool, optional
         Normalize the harmonic before returning. The normalization is such
         that the harmonic integrates to 1 over the unit sphere.
+    use_cache : bool, optional
+        If normalizing, use tabulated normalization constants in the cached
+        data, if available. A cubic spline is used to interpolate to spins that
+        are not in the cache. Otherwise, the normalization constant will be
+        calculated on the fly by numerically integrating over theta. Default is
+        True.
 
     Returns
     -------
@@ -234,20 +237,20 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
     norm = numpy.exp(aw*u + 1j*m*phi) * (1 + u)**k1 *  (1 - u)**k2
     if normalize:
         norm *= slmnorm(spin, l, m, n, s=s, tol=tol,
-                        max_recursion=max_recursion)
+                        max_recursion=max_recursion, use_cache=use_cache)
     slm *= norm
     return slm
 
 
 # vectorize
-_npslm = numpy.frompyfunc(_pyslm, 11, 1)
+_npslm = numpy.frompyfunc(_pyslm, 12, 1)
 
 
 def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-8, maxtol=1e-4,
-               max_recursion=1000, normalize=True):
+               max_recursion=1000, normalize=True, use_cache=True):
     # done this way to vectorize the function
     out = _npslm(theta, spin, l, m, n, s, phi, tol, maxtol, max_recursion,
-                 normalize)
+                 normalize, use_cache)
     if isinstance(out, numpy.ndarray):
         out = out.astype(numpy.complex)
     return out
