@@ -36,25 +36,29 @@ opts = parser.parse_args()
 tmplt = '{}/' + 's{}'.format(opts.s) + 'norm'
 
 # load the spins and modes from the data file
-print("loading spins")
-spins = {}
 with h5py.File(opts.input_file, 'r') as fp:
-    for mode in fp:
-        if opts.skip_if_exists and tmplt.format(mode) in fp:
-            print("skipping {}".format(mode))
+    spins = fp['spin'][()]
+    # get the modes to analyze
+    modes = []
+    print('getting modes')
+    for name in fp:
+        if name == 'spin':
             continue
-        spins[mode] = fp[mode]['spin'][()]
-
+        if opts.skip_if_exists and tmplt.format(name) in fp:
+            print("skipping {}".format(name))
+            continue
+        modes.append(name)
+        
 print("computing")
-for mode in spins:
+for mode in modes:
     print(mode)
     l, m, n = mode
     l, m, n = tuple(map(int, [l, m, n]))
-    norm = numpy.zeros(spins[mode].shape)
-    for ii, a in enumerate(spins[mode]):
+    norm = numpy.zeros(spins.shape, dtype=numpy.float64)
+    for ii, a in enumerate(spins):
         if not ii % 10:
             print("{} / {}".format(ii, norm.size), end="\r")
-        norm[ii] = slmnorm(numpy.float32(a), l, m, n, s=-opts.s,
+        norm[ii] = slmnorm(1e-4*a, l, m, n, s=-opts.s,
                            npoints=opts.npoints,
                            tol=opts.tol, maxtol=opts.maxtol,
                            max_recursion=opts.max_recursion,
