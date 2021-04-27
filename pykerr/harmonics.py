@@ -9,7 +9,7 @@ from .qnm import (_getspline, _qnmomega, _checkspin)
 
 # to print out additional messages; set to True if you're having convergence
 # issues and are trying to figure out why
-_DEBUG = False
+DEBUG = False
 
 
 # we'll cache the splines
@@ -103,9 +103,10 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-4, maxtol=0.01,
     npoints : int, optional
         The number of points to use in the integral. Default is 1000.
     tol : float, optional
-        Tolerance used for determining when to stop the sum over coefficients
-        (see Eq. 18 of Leaver). The sum stops when both the real part and
-        the imaginary part of the last term is less than the specified value.
+        Tolerance used to determine when to stop the sum over coefficients
+        :math:`c_n = a_n (1 + \cos(theta))^n` (see Eq. 18 of Leaver). The sum
+        stops when :math:`|\Re \{c_n - c_{n-1}\}|` and
+        :math:`|\Im \{c_n - c_{n-1}\}|` are both less than the given value.
         Default is 1e-4.
     maxtol : float, optional
         Maximum allowed error in the sum over coefficients in the spheroidal
@@ -166,9 +167,10 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
     phi : float, optional
         The azimuthal angle of the observer. Default is 0.
     tol : float, optional
-        Tolerance used for determining when to stop the sum over coefficients
-        (see Eq. 18 of Leaver). The sum stops when both the real part and
-        the imaginary part of the last term is less than the specified value.
+        Tolerance used to determine when to stop the sum over coefficients
+        :math:`c_n = a_n (1 + \cos(theta))^n` (see Eq. 18 of Leaver). The sum
+        stops when :math:`|\Re \{c_n - c_{n-1}\}|` and
+        :math:`|\Im \{c_n - c_{n-1}\}|` are both less than the given value.
         Default is 1e-4.
     maxtol : float, optional
         Maximum allowed error in the sum over coefficients. If the maximum
@@ -224,16 +226,15 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
     beta0 = _beta(0,  k1, k2, aw, almterm)
     a_nm1 = a0
     a_n = -a0 * beta0/alpha0  # a1
-    # we sum until the difference in terms is ~ 0
-    delta = numpy.inf
-    if _DEBUG:
-        deltas = [None]*max_recursion
+    # we sum until the difference between consecutive terms is ~ 0
+    c_nm1 = 0j
+    delta = complex(numpy.inf, numpy.inf)
+    if DEBUG:
+        deltas = [None]*(max_recursion-1)
     while ((abs(delta.real) > tol or abs(delta.imag) > tol)
            and jj < max_recursion):
-        delta = a_n * b_n**jj
-        if _DEBUG:
-            deltas[jj-1] = delta
-        slm += delta 
+        c_n = a_n * b_n**jj
+        slm += c_n
         # update for next loop
         alpha_n = _alpha(jj, k1)
         beta_n = _beta(jj,  k1, k2, aw, almterm)
@@ -243,13 +244,18 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
         a_nm1 = a_n
         a_n = a_np1
         jj += 1
-    if _DEBUG:
+        # what we use to keep track of when to stop
+        delta = c_n - c_nm1
+        c_nm1 = c_n
+        if DEBUG:
+            deltas[jj-1] = delta
+    if DEBUG:
         logging.debug("Used %i terms for parameters: theta=%f, spin=%f, l=%i, "
                       "m=%i, n=%i, s=%i, phi=%f", jj, theta, spin, l, m, n, s,
                       phi)
     if jj == max_recursion and (abs(delta.real) > maxtol
                                 or abs(delta.imag) > maxtol):
-        if _DEBUG:
+        if DEBUG:
             logging.debug("deltas: %s", '\n'.join(map(str, deltas)))
         raise ValueError("maximum recursion exceeded; current delta is "
                          "{}. Parameters: theta={}, spin={}, l={}, m={}, "
