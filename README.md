@@ -1,5 +1,5 @@
 # pykerr
-Provides simple to call functions to get the frequency, damping time, and spheroidal harmonics of Kerr black holes. Solutions for the l=2 to l=7 modes are provided, with all m, and up to 7 overtones, for dimensionless black hole spins up to +/- 0.9997. Spin weights of -2, -1, and 0 are also provided for the spheroidal harmonics, though pretabulation normalization constants are only provided for the s=-2 harmonics.
+Provides simple to call functions to get the frequency, damping time, and spheroidal harmonics of Kerr black holes. Solutions for the l=2 to l=7 modes are provided, including all m=[-l, ..., l] and up to 7 overtones (where n=0 is the fundamental mode), for dimensionless black hole spins up to +/- 0.9997. Spin weights of -2, -1, and 0 are supported for the spheroidal harmonics, with pretabulated normalization constants provided for the s=-2 harmonics.
 
 ## Installation
 
