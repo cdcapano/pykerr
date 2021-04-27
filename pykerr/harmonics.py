@@ -6,6 +6,11 @@ from .qnm import (_getspline, _qnmomega, _checkspin)
 """Functions to calculate spheroidal and spherical harmonics.
 """
 
+# the default tolerances we will use
+TOL = 1e-6
+MAXTOL = 0.01
+MAX_RECURSION = 100
+
 
 # to print out additional messages; set to True if you're having convergence
 # issues and are trying to figure out why
@@ -72,8 +77,13 @@ def _gamma(jj, k1, k2, aw, s):
     return 2 * aw * (jj + k1 + k2 + s)
 
 
-def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-4, maxtol=0.01,
-            max_recursion=1000, use_cache=True):
+def _setdefault(arg, default):
+    """Convenience function to set tolerance defaults."""
+    return default if arg is None else arg
+
+
+def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=None, maxtol=None,
+            max_recursion=None, use_cache=True):
     r"""Calculate the normalization constant for a spheroidal harmonic.
 
     The normalization is such that:
@@ -104,18 +114,22 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-4, maxtol=0.01,
         The number of points to use in the integral. Default is 1000.
     tol : float, optional
         Tolerance used to determine when to stop the sum over coefficients
-        :math:`c_n = a_n (1 + \cos(theta))^n` (see Eq. 18 of Leaver). The sum
-        stops when :math:`|\Re \{c_n - c_{n-1}\}|` and
-        :math:`|\Im \{c_n - c_{n-1}\}|` are both less than the given value.
-        Default is 1e-4.
+        :math:`c_n = a_n (1 + \cos(theta))^n` in the spheroidal harmonics (see
+        Eq. 18 of Leaver). The sum stops when :math:`|c_n|` is less than the
+        given value. If ``None`` (the default) will use
+        :const:`pykerr.harmonics.TOL`.
     maxtol : float, optional
         Maximum allowed error in the sum over coefficients in the spheroidal
-        harmonics. Default it 0.01.
+        harmonics. If no :math:`c_n` up to :math:`n` = ``max_recursion``
+        satisfies :math:`|c_n| <` ``tol``, then the sum will be done up to
+        the smallest :math:`|c_n|` such that :math:`|c_n|` < ``maxtol``. If
+        no :math:`|c_n|` is < ``maxtol``, then a ValueError will be raised.
+        If set to ``None`` (the default), will use
+        :const:`pykerr.harmonics.MAXTOL`.
     max_recursion : int, optional
         Maximum number of terms that will be used in the sum over coefficients
-        in the spheroidal harmonics (see Eq. 18 of Leaver). If the number of
-        terms exceeds this (meaning that the magnitude of each term is larger
-        than ``tol``), a ValueError will be raised. Default is 1000.
+        in the spheroidal harmonics (see Eq. 18 of Leaver). If ``None`` (the
+        default), will use :const:`pykerr.harmonics.MAX_RECURSION`.
     use_cache : bool, optional
         Use tabulated values in the cached data, if available. A cubic spline
         is used to interpolate to spins that are not in the cache. Default is
@@ -132,6 +146,11 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-4, maxtol=0.01,
             return spline(spin)
         except KeyError:
             pass
+    # set the tolerance values
+    tol = _setdefault(tol, TOL)
+    maxtol = _setdefault(maxtol, MAXTOL)
+    max_recursion = _setdefault(max_recursion, MAX_RECURSION)
+    # evaluate
     thetas = numpy.linspace(0, numpy.pi, num=npoints)
     slm = spheroidal(thetas, spin, l, m, n, s=s, tol=tol, maxtol=maxtol,
                      max_recursion=max_recursion, normalize=False)
@@ -139,8 +158,8 @@ def slmnorm(spin, l, m, n, s=-2, npoints=1000, tol=1e-4, maxtol=0.01,
                                    dx=thetas[1]))**(-0.5)
 
 
-def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
-           max_recursion=1000, normalize=True, use_cache=True):
+def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=None, maxtol=None,
+           max_recursion=None, normalize=True, use_cache=True):
     r"""Calculate the spin-weighted spheroidal harmonic.
 
     See Eq. 18 of E. W. Leaver (1985)
@@ -168,21 +187,22 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
         The azimuthal angle of the observer. Default is 0.
     tol : float, optional
         Tolerance used to determine when to stop the sum over coefficients
-        :math:`c_n = a_n (1 + \cos(theta))^n` (see Eq. 18 of Leaver). The sum
-        stops when :math:`|\Re \{c_n - c_{n-1}\}|` and
-        :math:`|\Im \{c_n - c_{n-1}\}|` are both less than the given value.
-        Default is 1e-4.
+        :math:`c_n = a_n (1 + \cos(theta))^n` in the spheroidal harmonics (see
+        Eq. 18 of Leaver). The sum stops when :math:`|c_n|` is less than the
+        given value. If ``None`` (the default) will use
+        :const:`pykerr.harmonics.TOL`.
     maxtol : float, optional
-        Maximum allowed error in the sum over coefficients. If the maximum
-        recursion is hit and the difference between consecutuive terms still
-        exceeds this value, a ``ValueError`` will be raised.
+        Maximum allowed error in the sum over coefficients in the spheroidal
+        harmonics. If no :math:`c_n` up to :math:`n` = ``max_recursion``
+        satisfies :math:`|c_n| <` ``tol``, then the sum will be done up to
+        the smallest :math:`|c_n|` such that :math:`|c_n|` < ``maxtol``. If
+        no :math:`|c_n|` is < ``maxtol``, then a ValueError will be raised.
+        If set to ``None`` (the default), will use
+        :const:`pykerr.harmonics.MAXTOL`.
     max_recursion : int, optional
         Maximum number of terms that will be used in the sum over coefficients
-        (see Eq. 18 of Leaver). If the number of terms exceeds this (meaning
-        that the magnitude of each term is larger than ``tol``), a ValueError
-        will be raised if the remaining tolerance is greater than maxtol. 
-        If the remaining tolerance is less than maxtol (but greater than tol),
-        a warning message will be printed. Default is 1000.
+        in the spheroidal harmonics (see Eq. 18 of Leaver). If ``None`` (the
+        default), will use :const:`pykerr.harmonics.MAX_RECURSION`.
     normalize : bool, optional
         Normalize the harmonic before returning. The normalization is such
         that the harmonic integrates to 1 over the unit sphere.
@@ -195,9 +215,14 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
 
     Returns
     -------
-    complex :
+    slm : complex
         The value of the spheroidal harmonic.
     """
+    # set the tolerance values
+    tol = _setdefault(tol, TOL)
+    maxtol = _setdefault(maxtol, MAXTOL)
+    max_recursion = _setdefault(max_recursion, MAX_RECURSION)
+    # check spin weight
     if not s in [-2, -1, 0]:
         raise ValueError("s must be either -2, -1, or 0")
     u = numpy.cos(theta)
@@ -220,21 +245,18 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
     # initial a; this sets the norm of the Slm
     a0 = 1.
     # initialize terms for sum, which will start from jj = 1
-    slm = a0 + 0j
+    slm = numpy.zeros(max_recursion, dtype=complex)
+    slm[0] = a0 + 0j
     # Eq. 19 of Leaver
     alpha0 = _alpha(0, k1)
     beta0 = _beta(0,  k1, k2, aw, almterm)
     a_nm1 = a0
     a_n = -a0 * beta0/alpha0  # a1
     # we sum until the difference between consecutive terms is ~ 0
-    c_nm1 = 0j
-    delta = complex(numpy.inf, numpy.inf)
-    if DEBUG:
-        deltas = [None]*(max_recursion-1)
-    while ((abs(delta.real) > tol or abs(delta.imag) > tol)
-           and jj < max_recursion):
+    c_n = complex(numpy.inf, numpy.inf)
+    while abs(c_n) > tol and jj < max_recursion:
         c_n = a_n * b_n**jj
-        slm += c_n
+        slm[jj] = c_n
         # update for next loop
         alpha_n = _alpha(jj, k1)
         beta_n = _beta(jj,  k1, k2, aw, almterm)
@@ -244,29 +266,31 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
         a_nm1 = a_n
         a_n = a_np1
         jj += 1
-        # what we use to keep track of when to stop
-        delta = c_n - c_nm1
-        c_nm1 = c_n
+    if jj == max_recursion:
+        # nothing satisfied the tolerance; try using the minimum
+        minidx = abs(slm).argmin()
+        c_n = slm[minidx]
+        if abs(c_n) < maxtol:
+            # ok, use that
+            jj = minidx + 1
         if DEBUG:
-            deltas[jj-1] = delta
-    if DEBUG:
-        logging.debug("Used %i terms for parameters: theta=%f, spin=%f, l=%i, "
-                      "m=%i, n=%i, s=%i, phi=%f", jj, theta, spin, l, m, n, s,
-                      phi)
-    if jj == max_recursion and (abs(delta.real) > maxtol
-                                or abs(delta.imag) > maxtol):
+            logging.debug("Did not get to target tolerance of {} for Slm. "
+                          "Actual tolerance is {}. Parameters: theta={}, "
+                          "spin={}, l={}, m={}, n={}, s={}, phi={}"
+                          .format(tol, abs(c_n), theta, spin, l, m, n, s,
+                                  phi))
+    if abs(c_n) > maxtol:
+        # were not able to satisfy the max condition, raise an error
+        msg = ("Max recursion exceeded without satisfying maxtol. Smallest "
+              "abs(term): {}. Parameters: theta={}, spin={}, l={}, m={}, "
+              "n={}, s={}, phi={}."
+              .format(abs(c_n), theta, spin, l, m, n, s, phi))
         if DEBUG:
-            logging.debug("deltas: %s", '\n'.join(map(str, deltas)))
-        raise ValueError("maximum recursion exceeded; current delta is "
-                         "{}. Parameters: theta={}, spin={}, l={}, m={}, "
-                         "n={}, s={}, phi={}"
-                         .format(delta, theta, spin, l, m, n, s, phi))
-    elif jj == max_recursion:
-        logging.warning("Did not get to target tolerance of {} for Slm. "
-                        "Actual tolerance is {}. Parameters: theta={}, "
-                        "spin={}, l={}, m={}, n={}, s={}, phi={}"
-                         .format(tol, delta, theta, spin, l, m, n, s,
-                                 phi))
+            # print the slms
+            msg += " Terms:\n{}".format('\n'.join(map(str, slm)))
+        raise ValueError(msg)
+    # sum up
+    slm = slm[:jj].sum()
     # norm (Eq. 18 of Leaver)
     norm = numpy.exp(aw*u + 1j*m*phi) * (1 + u)**k1 *  (1 - u)**k2
     if normalize:
@@ -280,8 +304,8 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
 _npslm = numpy.frompyfunc(_pyslm, 12, 1)
 
 
-def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=1e-4, maxtol=0.01,
-               max_recursion=1000, normalize=True, use_cache=True):
+def spheroidal(theta, spin, l, m, n, s=-2, phi=0., tol=None, maxtol=None,
+               max_recursion=None, normalize=True, use_cache=True):
     # done this way to vectorize the function
     out = _npslm(theta, spin, l, m, n, s, phi, tol, maxtol, max_recursion,
                  normalize, use_cache)

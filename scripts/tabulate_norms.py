@@ -22,12 +22,15 @@ parser.add_argument('-s', type=int, choices=[0, 1, 2],
                     help='The (-) spin weight. Must be either 0, 1, or 2.')
 parser.add_argument('--npoints', type=int, default=1000,
                     help="The number of points to use in the integrals.")
-parser.add_argument("--tol", type=float, default=1e-4,
-                    help="The tolerance for the Slm calculation.")
-parser.add_argument("--maxtol", type=float, default=1e-2,
-                    help="The max tolerance for the Slm calculation.")
-parser.add_argument("--max-recursion", type=int, default=1000,
-                    help="Maximun recursion to use for Slm calculation.")
+parser.add_argument("--tol", type=float, default=None,
+                    help="The tolerance for the Slm calculation. Default is "
+                         "pykerr.harmonics.TOL.")
+parser.add_argument("--maxtol", type=float, default=None,
+                    help="The max tolerance for the Slm calculation. Default "
+                         "is pykerr.harmonics.MAXTOL.")
+parser.add_argument("--max-recursion", type=int, default=None,
+                    help="Maximun recursion to use for Slm calculation. "
+                         "Default is pykerr.harmonics.MAX_RECURSION.")
 parser.add_argument('--skip-if-exists', action='store_true', default=False,
                     help="Skip any modes that already have a norm written.")
 parser.add_argument('--nprocesses', type=int, default=1,
