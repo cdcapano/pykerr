@@ -8,6 +8,7 @@ setuptools.setup(
     author_email="collin.capano@aei.mpg.de",
     description="QNM frequencies and spheroidal harmonics of Kerr black holes.",
     long_description=open('README.md').read(),
+    long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
     install_requires=['numpy', 'scipy', 'h5py'],
     include_package_data=True,
