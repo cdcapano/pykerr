@@ -31,7 +31,7 @@ You can also install from source by cloning the repository at https://github.com
 
 ## Details
 
-pykerr uses pre-tabulated values for the Kerr QNM frequencies and angular separation constants. These are used to obtain solutions for the spheroidal harmonics using the recursion relation given by Eq. 18 in [Leaver (1985)](#leaver). The pre-tabulated values for the QNM frequency, damping time, and angular separation constant comes from [Berti et al. (2006)](#berti), made available as text files on the [GRIT Ringdown website](https://centra.tecnico.ulisboa.pt/network/grit/files/ringdown/). Those files are repackaged into compressed hdf files that are released with this package. A cubic spline is applied to the pretabulated values to provide fast evaluation of the spheroidal harmonics and QNM frequencies at any arbitrary spin <= 0.9997. Pre-tabulated normalization constants for the s=-2 spheroidal harmonics are also provided, with a cubic spline being used to interpolate them.
+pykerr uses pre-tabulated values for the Kerr QNM frequencies and angular separation constants. These are used to obtain solutions for the spheroidal harmonics using the recursion relation given by Eq. 18 in [Leaver (1985)](https://doi.org/10.1098/rspa.1985.0119) [1]. The pre-tabulated values for the QNM frequency, damping time, and angular separation constant comes from [Berti et al. (2006)](https://doi.org/10.1103/PhysRevD.73.064030) [2], made available as text files on the [GRIT Ringdown website](https://centra.tecnico.ulisboa.pt/network/grit/files/ringdown/). Those files are repackaged into compressed hdf files that are released with this package. A cubic spline is applied to the pretabulated values to provide fast evaluation of the spheroidal harmonics and QNM frequencies at any arbitrary spin <= 0.9997. Pre-tabulated normalization constants for the s=-2 spheroidal harmonics are also provided, with a cubic spline being used to interpolate them.
 
 pykerr does not calculate QNM frequencies and angular separation constants. For that, see the various Mathematica packages that are publicly available or the [qnm](https://pypi.org/project/qnm/) package, which can be installed via pip. Interpolated values have been checked against [London (2017)](https://github.com/llondon6/kerr_public).
 
@@ -55,6 +55,6 @@ To add pre-tabulated normalization constants to the data files use the `tabulate
 
 ## References
 
-1. <a name="leaver"></a> E. W. Leaver, "An Analytic representation for the quasi normal modes of Kerr black holes", [Proc. R. Soc. Lond. A 402 285-298](https://doi.org/10.1098/rspa.1985.0119) (1985).
+1. E. W. Leaver, "An Analytic representation for the quasi normal modes of Kerr black holes", [Proc. R. Soc. Lond. A 402 285-298](https://doi.org/10.1098/rspa.1985.0119) (1985).
 
-2. <a name="berti"></a> E. Berti, V. Cardoso, and C. M. Will, "On gravitational-wave spectroscopy of massive black holes with the space interferometer LISA", [PRD 73 064030](https://doi.org/10.1103/PhysRevD.73.064030) (2006), [arXiv:0512160](https://arxiv.org/abs/gr-qc/0512160) [gr-qc].
+2. E. Berti, V. Cardoso, and C. M. Will, "On gravitational-wave spectroscopy of massive black holes with the space interferometer LISA", [PRD 73 064030](https://doi.org/10.1103/PhysRevD.73.064030) (2006), [arXiv:0512160](https://arxiv.org/abs/gr-qc/0512160) [gr-qc].
