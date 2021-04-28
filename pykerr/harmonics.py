@@ -24,6 +24,14 @@ _norm_splines = {}
 _normnm_splines = {}
 
 
+def _checkspinweight(s):
+    """Checks that the spin weight is a supported value."""
+    if not s in [-2, -1, 0]:
+        raise ValueError("s must be either -2, -1, or 0")
+    if s != -2:
+        raise NotImplementedError("only s=-2 is currently supported")
+
+
 def kerr_alm(spin, l, m, n):
     """Returns the angular separation constant for a Kerr BH.
 
@@ -52,6 +60,7 @@ def kerr_alm(spin, l, m, n):
         alm = alm.conj()
     return alm 
 
+
 def _alpha(jj, k1):
     """Leaver's alpha coefficient for the Slm (Eq. 20 of Leaver).
 
@@ -60,6 +69,7 @@ def _alpha(jj, k1):
     """
     return -2 * (jj + 1) * (jj + 2*k1 + 1)
 
+
 def _beta(jj, k1, k2, aw, almterm):
     """Leaver's beta coefficient for the Slm (Eq. 20 of Leaver).
 
@@ -67,6 +77,7 @@ def _beta(jj, k1, k2, aw, almterm):
     overtone index.
     """
     return jj*(jj - 1) + 2*jj*(k1 + k2 + 1 - 2*aw) - almterm
+
 
 def _gamma(jj, k1, k2, aw, s):
     """Leaver's gamma coefficient for the Slm (Eq. 20 of Leaver).
@@ -223,8 +234,7 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=None, maxtol=None,
     maxtol = _setdefault(maxtol, MAXTOL)
     max_recursion = _setdefault(max_recursion, MAX_RECURSION)
     # check spin weight
-    if not s in [-2, -1, 0]:
-        raise ValueError("s must be either -2, -1, or 0")
+    _checkspinweight(s)
     u = numpy.cos(theta)
     alm = kerr_alm(spin, l, m, n)
     # prefactors
@@ -297,6 +307,9 @@ def _pyslm(theta, spin, l, m, n, s=-2, phi=0., tol=None, maxtol=None,
         norm *= slmnorm(spin, l, m, n, s=s, tol=tol, maxtol=maxtol,
                         max_recursion=max_recursion, use_cache=use_cache)
     slm *= norm
+    # adjust to be consistent with the spherical harmonics... I'm not sure
+    # why this works, it's just what I had to do to get it to match.
+    slm *= (-1)**l * (-1)**max(0, s-m)
     return slm
 
 
