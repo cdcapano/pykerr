@@ -1,8 +1,14 @@
 import setuptools
 
+# get version
+with open("pykerr/_version.py", "r") as fh:
+    vstr = fh.read().strip()
+    vstr = vstr.split('=')[1].strip()
+    version = vstr.replace("'", "").replace('"', "")
+
 setuptools.setup(
     name="pykerr",
-    version="0.1.0",
+    version=version,
     url="https://github.com/cdcapano/pykerr.git",
     author="Collin Capano",
     author_email="collin.capano@aei.mpg.de",
