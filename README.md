@@ -1,5 +1,5 @@
 # pykerr
-Provides simple to call functions to get the frequency, damping time, and spheroidal harmonics of Kerr black holes. Solutions for the l=2 to l=7 modes are provided, including all m=[-l, ..., l] and up to 7 overtones (where n=0 is the fundamental mode), for dimensionless black hole spins up to +/- 0.9997. Currently, only spin weights of s=-2 are supported.
+This package provides functions to get the frequency, damping time, and spheroidal harmonics of Kerr black holes. Solutions for the `l=2` to `l=7` modes are provided, including all `m=[-l, ..., l]` and up to 7 overtones (where `n=0` is the fundamental mode), for dimensionless black hole spins up to +/- 0.9997. Currently, only spin weights of `s=-2` are supported.
 
 ## Installation
 
@@ -7,8 +7,12 @@ The easiest way to install pykerr is via pip:
 ```
 pip install pykerr
 ```
+or conda:
+```
+conda install -c conda-forge pykerr
+```
 
-You can also install from source by cloning the repository at https://github.com/cdcapano/pykerr. Required packages are listed in the `requirements.txt` file, which you can install by running `pip install -r requirements.txt` from within the source code directory, followed by `python setup.py install`.
+You can also install from source by cloning the repository at https://github.com/cdcapano/pykerr. Required packages are listed in the `requirements.txt` file, which you can install by running `pip install -r requirements.txt` from within the source code directory, followed by `pip install .`.
 
 ## Examples
 
@@ -31,9 +35,9 @@ You can also install from source by cloning the repository at https://github.com
 
 ## Details
 
-pykerr uses pre-tabulated values for the Kerr QNM frequencies and angular separation constants. These are used to obtain solutions for the spheroidal harmonics using the recursion relation given by Eq. 18 in [Leaver (1985)](https://doi.org/10.1098/rspa.1985.0119) [1]. The pre-tabulated values for the QNM frequency, damping time, and angular separation constant comes from [Berti et al. (2006)](https://doi.org/10.1103/PhysRevD.73.064030) [2], made available as text files on the [GRIT Ringdown website](https://centra.tecnico.ulisboa.pt/network/grit/files/ringdown/). Those files are repackaged into compressed hdf files that are released with this package. A cubic spline is applied to the pretabulated values to provide fast evaluation of the spheroidal harmonics and QNM frequencies at any arbitrary spin <= 0.9997. Pre-tabulated normalization constants for the s=-2 spheroidal harmonics are also provided, with a cubic spline being used to interpolate them.
+`pykerr` uses pre-tabulated values for the Kerr QNM frequencies and angular separation constants. These are used to obtain solutions for the spheroidal harmonics using the recursion relation given by Eq. 18 in [Leaver (1985)](https://doi.org/10.1098/rspa.1985.0119) [1]. The pre-tabulated values for the QNM frequency, damping time, and angular separation constant comes from [Berti et al. (2006)](https://doi.org/10.1103/PhysRevD.73.064030) [2], made available as text files on the [GRIT Ringdown website](https://centra.tecnico.ulisboa.pt/network/grit/files/ringdown/). Those files are repackaged into compressed hdf files that are released with this package. A cubic spline is applied to the pretabulated values to provide fast evaluation of the spheroidal harmonics and QNM frequencies at any arbitrary spin `<= 0.9997`. Pre-tabulated normalization constants for the `s=-2` spheroidal harmonics are also provided, with a cubic spline being used to interpolate them.
 
-pykerr does not calculate QNM frequencies and angular separation constants. For that, see the various Mathematica packages that are publicly available or the [qnm](https://pypi.org/project/qnm/) package, which can be installed via pip. Interpolated values have been checked against [London (2017)](https://github.com/llondon6/kerr_public).
+`pykerr` does not calculate QNM frequencies and angular separation constants. For that, see the various Mathematica packages that are publicly available or the [qnm](https://pypi.org/project/qnm/) package, which can be installed via pip. Interpolated values have been checked against [London (2017)](https://github.com/llondon6/kerr_public).
 
 ## Conventions
 
@@ -43,11 +47,11 @@ f_{l-mn} = -f_{lmn}
 tau_{l-mn} = tau_{lmn}
 A_{l-mn} = A*_{lmn}
 ```
-with dimensionless spin a/M being positive or negative. Negative spin means the perturbation is counterrotating with respect to the black hole, while positive spin means the perturbation is corotating.
+with dimensionless spin a/M being positive or negative. Negative spin means the perturbation is counter-rotating with respect to the black hole, while positive spin means the perturbation is co-rotating.
 
 ## Custom tabulation
 
-If you would like pykerr to use your own tabulated values, clone the code from soucre, then add or replace the hdf files stored in `pykerr/data`. The files should be named `l{l}.hdf`, where `{l}` is the l index. The hdf files need to have a top-level `spin` dataset with spins stored as 10^4 times the spin value. Each mode should be provided as a separate group, named `{l}{m}{n}`. In that group, there should be complex datasets called `omega` and `alm` that provides the dimensionless complex angular frequencies and angular separation constants, respectively. See the `convert_to_hdf.py` in the `scripts` directory, which is used to convert the text files from the GRIT website into the correct format, as an example. Once your files are implace, install pykerr using `python setup.py install` or `pip install .`. That will copy your files to the install directory to be used by your code at runtime.
+If you would like `pykerr` to use your own tabulated values, clone the code from soucre, then add or replace the hdf files stored in `pykerr/data`. The files should be named `l{l}.hdf`, where `{l}` is the l index. The hdf files need to have a top-level `spin` dataset with spins stored as 10^4 times the spin value. Each mode should be provided as a separate group, named `{l}{m}{n}`. In that group, there should be complex datasets called `omega` and `alm` that provides the dimensionless complex angular frequencies and angular separation constants, respectively. See the `convert_to_hdf.py` in the `scripts` directory, which is used to convert the text files from the GRIT website into the correct format, as an example. Once your files are implace, install pykerr using `pip install .`. That will copy your files to the install directory to be used by your code at runtime.
 
 If you add values for spins beyond 0.9997 and would like pykerr to support them, change `pykerr.qnm.MAX_SPIN` appropriately. This can also be done at run time. It is recommended that at least three data points be provided beyond your spin limit to avoid boundary effects from the cubic spline.
 
