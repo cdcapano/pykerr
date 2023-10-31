@@ -1,4 +1,7 @@
 # pykerr
+
+[![DOI](https://zenodo.org/badge/359106882.svg)](https://zenodo.org/doi/10.5281/zenodo.10056494)
+
 This package provides functions to get the frequency, damping time, and spheroidal harmonics of Kerr black holes. Solutions for the `l=2` to `l=7` modes are provided, including all `m=[-l, ..., l]` and up to 7 overtones (where `n=0` is the fundamental mode), for dimensionless black hole spins up to +/- 0.9997. Currently, only spin weights of `s=-2` are supported.
 
 ## Installation
@@ -56,6 +59,11 @@ If you would like `pykerr` to use your own tabulated values, clone the code from
 If you add values for spins beyond 0.9997 and would like pykerr to support them, change `pykerr.qnm.MAX_SPIN` appropriately. This can also be done at run time. It is recommended that at least three data points be provided beyond your spin limit to avoid boundary effects from the cubic spline.
 
 To add pre-tabulated normalization constants to the data files use the `tabulate_norms.py` script, provided in the `scripts` directory.
+
+## Attribution
+
+If you use `pykerr` in your work, please cite DOI 10.5281/zenodo.10056494 for the latest version, or the DOI specific to the release you used. Authorship, citation format, and DOI for all versions are available at [Zenodo](https://zenodo.org/doi/10.5281/zenodo.10056494).
+
 
 ## References
 
