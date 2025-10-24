@@ -1,5 +1,4 @@
-import os
-import pkg_resources
+from importlib import resources
 import numpy
 import h5py
 from scipy.interpolate import CubicSpline
@@ -20,19 +19,21 @@ def _create_spline(name, reim, l, m, n):
     """Creates a cubic spline for the specified mode data."""
     # load the data
     lmn = '{}{}{}'.format(l, abs(m), n)
+    data_name = 'data/l{}.hdf'.format(l)
+    data_path = resources.files('pykerr').joinpath(data_name)
     try:
-        dfile = pkg_resources.resource_stream(__name__,
-                                              'data/l{}.hdf'.format(l))
-    except OSError:
+        # as_file ensures a real file path (works for zipped packages, wheels)
+        with resources.as_file(data_path) as dfile_path:
+            with h5py.File(dfile_path, 'r') as fp:
+                # load and convert the spin
+                x = 1e-4 * fp['spin'][()]
+                y = fp[lmn][name][()]
+    except FileNotFoundError:
         raise ValueError("unsupported lmn {}{}{}".format(l, m, n))
-    with h5py.File(dfile, 'r') as fp:
-        # load and convert the spin
-        x = 1e-4 * fp['spin'][()]
-        y = fp[lmn][name][()]
-        if reim == 're':
-            y = y.real
-        elif reim == 'im':
-            y = y.imag
+    if reim == 're':
+        y = y.real
+    elif reim == 'im':
+        y = y.imag
     return CubicSpline(x, y, axis=0, bc_type='not-a-knot', extrapolate=False)
 
 
