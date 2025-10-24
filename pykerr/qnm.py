@@ -20,7 +20,7 @@ def _create_spline(name, reim, l, m, n):
     # load the data
     lmn = '{}{}{}'.format(l, abs(m), n)
     data_name = 'data/l{}.hdf'.format(l)
-    data_path = resources.files(__name__).joinpath(data_name)
+    data_path = resources.files('pykerr').joinpath(data_name)
     try:
         # as_file ensures a real file path (works for zipped packages, wheels)
         with resources.as_file(data_path) as dfile_path:

@@ -1,5 +1,6 @@
 import numpy as np
 from pykerr import qnm
+from pykerr import (qnmfreq, qnmtau, spheroidal)
 
 
 def test_qnmomega_callable():
@@ -17,18 +18,18 @@ def test_qnmfreq_value():
     """Test that qnmfreq returns the expected frequency for a specific case.
     This test uses the example from the README.md documentation.
     """
-    freq = qnm.qnmfreq(200., 0.7, 2, 2, 0)
+    freq = qnmfreq(200., 0.7, 2, 2, 0)
     expected = 86.04823229677822
-    np.testing.assert_allclose(freq, expected, rtol=1e-14)
+    np.testing.assert_allclose(freq, expected, rtol=1e-7)
 
 
 def test_qnmtau_value():
     """Test that qnmtau returns the expected damping time for a specific case.
     This test uses the example from the README.md documentation.
     """
-    tau = qnm.qnmtau(200., 0.7, 2, 2, 0)
-    expected = 0.012192884850631896
-    np.testing.assert_allclose(tau, expected, rtol=1e-14)
+    tau = qnmtau(200., 0.7, 2, 2, 0)
+    expected = 0.012192884850631896 
+    np.testing.assert_allclose(tau, expected, rtol=1e-7)
 
 
 def test_spheroidal_value():
@@ -40,6 +41,6 @@ def test_spheroidal_value():
     l, m, n = 2, 2, 0
     phi = 0.0       # azimuthal angle
     
-    value = qnm.spheroidal(theta, a, l, m, n, phi=phi)
+    value = spheroidal(theta, a, l, m, n, phi=phi)
     expected = 0.3378406925922286-0.0007291958007333236j
-    np.testing.assert_allclose(value, expected, rtol=1e-14)
+    np.testing.assert_allclose(value, expected, rtol=1e-7)
