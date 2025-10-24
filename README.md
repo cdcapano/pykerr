@@ -1,6 +1,7 @@
 # pykerr
 
 [![DOI](https://zenodo.org/badge/359106882.svg)](https://zenodo.org/doi/10.5281/zenodo.10056494)
+[![build](https://github.com/cdcapano/pykerr/actions/workflows/tests.yml/badge.svg)](https://github.com/cdcapano/pykerr/actions/workflows/tests.yml)
 
 This package provides functions to get the frequency, damping time, and spheroidal harmonics of Kerr black holes. Solutions for the `l=2` to `l=7` modes are provided, including all `m=[-l, ..., l]` and up to 7 overtones (where `n=0` is the fundamental mode), for dimensionless black hole spins up to +/- 0.9997. Currently, only spin weights of `s=-2` are supported.
 
